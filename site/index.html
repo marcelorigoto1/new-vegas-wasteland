@@ -66,6 +66,9 @@
     scrollbar-width: thin; scrollbar-color: var(--amber-dim) transparent; }
   ul.list li { padding: 4px 14px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; }
   ul.list li .kind { color: var(--amber-dim); font-size: 12px; white-space: nowrap; align-self: center; }
+  ul.list li .ico { width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px;
+    filter: drop-shadow(0 0 3px rgba(255, 182, 66, 0.5)); }
+  ul.list li:hover .ico, ul.list li:focus-visible .ico, ul.list li.sel .ico { outline: 1px solid #120c02; filter: none; }
   ul.list li:hover, ul.list li:focus-visible, ul.list li.sel { background: var(--amber); color: #120c02;
     text-shadow: none; outline: none; }
   ul.list li:hover .kind, ul.list li:focus-visible .kind, ul.list li.sel .kind { color: #3a2706; }
@@ -303,24 +306,30 @@ const labelStyle = {
   outlineWidth: 4,
   style: Cesium.LabelStyle.FILL_AND_OUTLINE,
   verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-  pixelOffset: new Cesium.Cartesian2(0, -12),
+  pixelOffset: new Cesium.Cartesian2(0, -16),   // above the 24 px icon
   heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
   disableDepthTestDistance: Number.POSITIVE_INFINITY,
   distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 2200),
   translucencyByDistance: new Cesium.NearFarScalar(1200, 1.0, 2200, 0.0),
+};
+// the game's world-map icon for each marker type (build_icons.py)
+const ICONS = new Set(["cave", "city", "encampment", "entrance", "factory", "metro", "military", "monument",
+  "natural_landmark", "office", "settlement", "sewer_ruins", "town_ruins", "urban_ruins", "vault"]);
+const iconOf = (type) => {
+  const s = String(type).toLowerCase().replace(/ /g, "_");
+  return `icons/${ICONS.has(s) ? s : "undiscovered"}.png`;
 };
 const markers = new Cesium.CustomDataSource("markers");
 for (const m of world.markers) {
   m.entity = markers.entities.add({
     name: m.name,
     position: Cesium.Cartesian3.fromDegrees(m.lon, m.lat),
-    point: {
-      pixelSize: 8,
-      color: AMBER,
-      outlineColor: Cesium.Color.fromCssColorString("#140c00"),
-      outlineWidth: 2,
-      scaleByDistance: new Cesium.NearFarScalar(1500, 1.0, 9000, 0.45),
-      translucencyByDistance: new Cesium.NearFarScalar(3000, 1.0, 9000, 0.5),
+    billboard: {
+      image: iconOf(m.type),
+      width: 24,
+      height: 24,
+      scaleByDistance: new Cesium.NearFarScalar(1500, 1.0, 9000, 0.55),
+      translucencyByDistance: new Cesium.NearFarScalar(3000, 1.0, 9000, 0.6),
       heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
       disableDepthTestDistance: Number.POSITIVE_INFINITY,
     },
@@ -357,7 +366,11 @@ function renderList(q = "") {
     li.tabIndex = 0;
     li.marker = m;
     const name = document.createElement("span");
-    name.textContent = m.name;
+    const icon = document.createElement("img");
+    icon.className = "ico";
+    icon.src = iconOf(m.type);
+    icon.alt = "";
+    name.append(icon, m.name);
     const type = document.createElement("span");
     type.className = "kind";
     type.textContent = m.type;

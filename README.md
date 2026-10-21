@@ -9,8 +9,8 @@ The interface is styled after the Pip-Boy 3000.
 - **Buildings and props**: ~133,000 placed objects with their full-detail models (3D Tiles 1.1).
   Distant LOD blocks are replaced by the full models up close. Repeated objects use GPU instancing.
   Rocks, plants and clutter switch to a reduced mesh at mid distance.
-- **Locations**: every map marker of the worldspace, searchable from the panel; building entrances on
-  The Strip.
+- **Locations**: every map marker of the worldspace with its in-game world-map icon, searchable from the
+  panel; building entrances on The Strip.
 - **Freeside** is a work in progress: the scripts build it, but its data is not published yet. The map
   menu only lists maps whose data is present, so it appears when you build it locally.
 - **Radio** (local only, see below): the in-game stations with their playlists, Mr. New Vegas with
@@ -48,6 +48,9 @@ python build_models.py "$DATA" --world WastelandNV -o site/maps/mojave/models --
 python build_models.py "$DATA" --world TheStripWorldNew -o site/maps/strip/models --labels strip_labels.json
 python build_models.py "$DATA" --world FreesideWorld --world FreesideNorthWorld --world FreesideFortWorld -o site/maps/freeside/models --labels freeside_labels.json
 
+# world-map icons for the location markers
+python build_icons.py "$DATA" -o site/icons
+
 # radio stations (local use only)
 python build_radio.py "$DATA" -o site/radio
 ```
@@ -64,6 +67,7 @@ To produce the entrance labels before the terrain step, run `build_models.py` (w
 | `build_cesium.py` | Terrain and imagery tiles, `world.json` |
 | `build_buildings.py` | Distant LOD building blocks as 3D Tiles |
 | `build_models.py` | Full-detail placed objects as 3D Tiles, with shared meshes, instancing and LODs |
+| `build_icons.py` | The game's world-map icons, tinted amber, for the location markers |
 | `build_radio.py` | Radio stations, playlists, DJ lines and transmitter ranges |
 
 ## Radio and copyright
