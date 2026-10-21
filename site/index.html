@@ -244,6 +244,9 @@ globe.baseColor = Cesium.Color.fromCssColorString("#080602");
 globe.showGroundAtmosphere = false;
 globe.depthTestAgainstTerrain = true;
 globe.maximumScreenSpaceError = 1.5;
+// keep terrain tiles around (default 100) so panning back does not re-request them
+globe.tileCacheSize = 1000;
+globe.preloadSiblings = true;
 scene.verticalExaggeration = 1.0;   // always true scale: models would stretch with exaggeration
 // fixed mid-afternoon in Las Vegas (UTC-7) so models are sunlit and the sky is daytime
 viewer.clock.currentTime = Cesium.JulianDate.fromIso8601("2026-06-21T22:00:00Z");
@@ -258,7 +261,12 @@ ssc.maximumZoomDistance = 25000;
 
 // 3D layers (buildings / placed models) with a toggle each
 for (const layer of world.tilesets ?? []) {
-  const tileset = await Cesium.Cesium3DTileset.fromUrl(base + layer.url, { maximumScreenSpaceError: 16 });
+  // a mid-distance view of the Mojave holds 1-1.4 GB of tiles: a larger cache stops evicting and re-fetching them
+  const tileset = await Cesium.Cesium3DTileset.fromUrl(base + layer.url, {
+    maximumScreenSpaceError: 16,
+    cacheBytes: 1536 * 1024 * 1024,
+    maximumCacheOverflowBytes: 512 * 1024 * 1024,
+  });
   scene.primitives.add(tileset);
   const label = document.createElement("label");
   label.className = "row";
@@ -603,6 +611,11 @@ function draw() {
   wctx.stroke();
 }
 draw();
+
+// persistent cache of map data for repeat visits; not on localhost, where the data is rebuilt often
+if ("serviceWorker" in navigator && !["localhost", "127.0.0.1"].includes(location.hostname)) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
 </script>
 </body>
 </html>
