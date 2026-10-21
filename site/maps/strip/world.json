@@ -1,0 +1,91 @@
+{
+ "world": "TheStripWorldNew",
+ "title": "The Strip",
+ "rectangle": [
+  -115.16083897940445,
+  36.15317732872604,
+  -115.11916102059556,
+  36.186822671273966
+ ],
+ "center": [
+  -115.14,
+  36.17
+ ],
+ "size": 3745.3824,
+ "heightRange": [
+  -103.21289825439453,
+  321.0686950683594
+ ],
+ "imageryMaxLevel": 16,
+ "tilesets": [
+  {
+   "name": "Buildings",
+   "url": "models/tileset.json"
+  }
+ ],
+ "markers": [
+  {
+   "name": "Gomorrah Main Level",
+   "lon": -115.1403103,
+   "lat": 36.1708604,
+   "height": 16.5,
+   "type": "Entrance"
+  },
+  {
+   "name": "Las Vegas Boulevard Station",
+   "lon": -115.1396968,
+   "lat": 36.1701688,
+   "height": 22.1,
+   "type": "Entrance"
+  },
+  {
+   "name": "Lucky 38 Casino",
+   "lon": -115.139451,
+   "lat": 36.1707621,
+   "height": 14.7,
+   "type": "Entrance"
+  },
+  {
+   "name": "Michael Angelo's Workshop",
+   "lon": -115.1402092,
+   "lat": 36.1690056,
+   "height": 15.1,
+   "type": "Entrance"
+  },
+  {
+   "name": "NCR Embassy",
+   "lon": -115.139654,
+   "lat": 36.1692238,
+   "height": 14.4,
+   "type": "Entrance"
+  },
+  {
+   "name": "NCR Military Police HQ",
+   "lon": -115.1396811,
+   "lat": 36.1690369,
+   "height": 14.6,
+   "type": "Entrance"
+  },
+  {
+   "name": "The Tops Casino Main Floor",
+   "lon": -115.1402615,
+   "lat": 36.1699656,
+   "height": 15.0,
+   "type": "Entrance"
+  },
+  {
+   "name": "Ultra-Luxe Casino Floor",
+   "lon": -115.139639,
+   "lat": 36.1697638,
+   "height": 18.2,
+   "type": "Entrance"
+  },
+  {
+   "name": "Vault 21 Gift Shop",
+   "lon": -115.1402897,
+   "lat": 36.1695232,
+   "height": 14.6,
+   "type": "Entrance"
+  }
+ ]
+}

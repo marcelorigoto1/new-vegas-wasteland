@@ -1,0 +1,1330 @@
+{
+ "world": "WastelandNV",
+ "title": "Mojave Wasteland",
+ "rectangle": [
+  -115.18167795880889,
+  36.13635465745208,
+  -115.09832204119111,
+  36.20364534254792
+ ],
+ "center": [
+  -115.14,
+  36.17
+ ],
+ "size": 7490.7648,
+ "heightRange": [
+  -32.86124801635742,
+  295.3511962890625
+ ],
+ "imageryMaxLevel": 16,
+ "tilesets": [
+  {
+   "name": "Buildings",
+   "url": "models/tileset.json"
+  }
+ ],
+ "markers": [
+  {
+   "name": "188 Trading Post",
+   "lon": -115.1352819,
+   "lat": 36.1740785,
+   "height": 85.7,
+   "type": "Encampment"
+  },
+  {
+   "name": "Abandoned BoS Bunker",
+   "lon": -115.1295056,
+   "lat": 36.1671861,
+   "height": 43.4,
+   "type": "Encampment"
+  },
+  {
+   "name": "Aerotech Office Park",
+   "lon": -115.1400831,
+   "lat": 36.1796184,
+   "height": 75.9,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "Allied Technologies Offices",
+   "lon": -115.1421846,
+   "lat": 36.1767271,
+   "height": 62.0,
+   "type": "Office"
+  },
+  {
+   "name": "Ant Mound",
+   "lon": -115.1418581,
+   "lat": 36.1760409,
+   "height": 63.1,
+   "type": "Cave"
+  },
+  {
+   "name": "Bitter Springs",
+   "lon": -115.1283424,
+   "lat": 36.1814114,
+   "height": 79.2,
+   "type": "Settlement"
+  },
+  {
+   "name": "Bitter Springs Recreation Area",
+   "lon": -115.1289891,
+   "lat": 36.1797461,
+   "height": 51.4,
+   "type": "Encampment"
+  },
+  {
+   "name": "Black Mountain",
+   "lon": -115.1394958,
+   "lat": 36.1714932,
+   "height": 156.8,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "Black Rock Cave",
+   "lon": -115.1383873,
+   "lat": 36.1702089,
+   "height": 84.1,
+   "type": "Cave"
+  },
+  {
+   "name": "Bloodborne Cave",
+   "lon": -115.1307877,
+   "lat": 36.1826273,
+   "height": 81.1,
+   "type": "Cave"
+  },
+  {
+   "name": "Blue Paradise Vacation Rentals",
+   "lon": -115.1278278,
+   "lat": 36.1562289,
+   "height": -30.1,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Bonnie Springs",
+   "lon": -115.1492568,
+   "lat": 36.1750722,
+   "height": 68.7,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Boulder Beach Campground",
+   "lon": -115.1314451,
+   "lat": 36.1749265,
+   "height": 53.4,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Boulder City",
+   "lon": -115.1318594,
+   "lat": 36.17284,
+   "height": 114.8,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Bradley's Shack",
+   "lon": -115.1438208,
+   "lat": 36.1555143,
+   "height": 135.0,
+   "type": "Settlement"
+  },
+  {
+   "name": "Brewer's Beer Bootlegging",
+   "lon": -115.1481812,
+   "lat": 36.18138,
+   "height": 97.7,
+   "type": "Encampment"
+  },
+  {
+   "name": "Broc Flower Cave",
+   "lon": -115.1368304,
+   "lat": 36.1605804,
+   "height": 122.5,
+   "type": "Cave"
+  },
+  {
+   "name": "Brooks Tumbleweed Ranch",
+   "lon": -115.1495823,
+   "lat": 36.1880799,
+   "height": 61.5,
+   "type": "Settlement"
+  },
+  {
+   "name": "Brotherhood of Steel Safehouse",
+   "lon": -115.1326109,
+   "lat": 36.1825166,
+   "height": 71.6,
+   "type": "Settlement"
+  },
+  {
+   "name": "Caesar's Legion Safehouse",
+   "lon": -115.1420882,
+   "lat": 36.1559009,
+   "height": 160.6,
+   "type": "Settlement"
+  },
+  {
+   "name": "California Sunset Drive-in",
+   "lon": -115.1507457,
+   "lat": 36.1622943,
+   "height": 82.2,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Callville Bay",
+   "lon": -115.1293153,
+   "lat": 36.1788179,
+   "height": 39.7,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Camp Forlorn Hope",
+   "lon": -115.1305478,
+   "lat": 36.1685872,
+   "height": 103.2,
+   "type": "Military"
+  },
+  {
+   "name": "Camp Golf",
+   "lon": -115.135065,
+   "lat": 36.1780684,
+   "height": 49.6,
+   "type": "Military"
+  },
+  {
+   "name": "Camp Guardian",
+   "lon": -115.1252942,
+   "lat": 36.1791907,
+   "height": 61.6,
+   "type": "Military"
+  },
+  {
+   "name": "Camp McCarran",
+   "lon": -115.1431378,
+   "lat": 36.179741,
+   "height": 63.4,
+   "type": "Military"
+  },
+  {
+   "name": "Camp Searchlight",
+   "lon": -115.1358156,
+   "lat": 36.157595,
+   "height": 99.9,
+   "type": "City"
+  },
+  {
+   "name": "Cannibal Johnson's Cave",
+   "lon": -115.1372734,
+   "lat": 36.1796996,
+   "height": 84.4,
+   "type": "Cave"
+  },
+  {
+   "name": "Canyon Wreckage",
+   "lon": -115.151893,
+   "lat": 36.1638698,
+   "height": 106.2,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Cap Counterfeiting Shack",
+   "lon": -115.1315471,
+   "lat": 36.1798538,
+   "height": 55.7,
+   "type": "Encampment"
+  },
+  {
+   "name": "Cassidy Caravans Wreckage",
+   "lon": -115.1405953,
+   "lat": 36.1769739,
+   "height": 63.6,
+   "type": "Encampment"
+  },
+  {
+   "name": "Cazador Nest",
+   "lon": -115.1318572,
+   "lat": 36.1708029,
+   "height": 72.0,
+   "type": "Cave"
+  },
+  {
+   "name": "Chance's Map",
+   "lon": -115.1491425,
+   "lat": 36.1781156,
+   "height": 62.0,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Charleston Cave",
+   "lon": -115.1578642,
+   "lat": 36.1842616,
+   "height": 237.5,
+   "type": "Cave"
+  },
+  {
+   "name": "Clark Field",
+   "lon": -115.1348233,
+   "lat": 36.1637819,
+   "height": 97.6,
+   "type": "Factory"
+  },
+  {
+   "name": "Cliffside Prospector Camp",
+   "lon": -115.1290156,
+   "lat": 36.1614008,
+   "height": 39.5,
+   "type": "Encampment"
+  },
+  {
+   "name": "Cottonwood Cove",
+   "lon": -115.1299635,
+   "lat": 36.1585472,
+   "height": -6.9,
+   "type": "Encampment"
+  },
+  {
+   "name": "Cottonwood Crater",
+   "lon": -115.1313943,
+   "lat": 36.1548612,
+   "height": 50.1,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Cottonwood Overlook",
+   "lon": -115.1300316,
+   "lat": 36.1574728,
+   "height": 0.8,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Coyote Den",
+   "lon": -115.1445954,
+   "lat": 36.160067,
+   "height": 115.4,
+   "type": "Cave"
+  },
+  {
+   "name": "Coyote Mines",
+   "lon": -115.1335819,
+   "lat": 36.159722,
+   "height": 123.0,
+   "type": "Cave"
+  },
+  {
+   "name": "Coyote Tail Ridge",
+   "lon": -115.1295526,
+   "lat": 36.180481,
+   "height": 66.4,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Crashed B-29",
+   "lon": -115.1278694,
+   "lat": 36.1775641,
+   "height": 19.5,
+   "type": "Military"
+  },
+  {
+   "name": "Crashed Vertibird",
+   "lon": -115.1391847,
+   "lat": 36.1543147,
+   "height": 106.8,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Crescent Canyon East",
+   "lon": -115.1469794,
+   "lat": 36.1541739,
+   "height": 67.1,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Crescent Canyon West",
+   "lon": -115.1503038,
+   "lat": 36.1559186,
+   "height": 66.5,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Crimson Caravan Company",
+   "lon": -115.1406894,
+   "lat": 36.1838348,
+   "height": 70.2,
+   "type": "Encampment"
+  },
+  {
+   "name": "Dead Wind Cavern",
+   "lon": -115.1421496,
+   "lat": 36.1624664,
+   "height": 168.2,
+   "type": "Cave"
+  },
+  {
+   "name": "Deserted Shack",
+   "lon": -115.1359531,
+   "lat": 36.1755466,
+   "height": 66.6,
+   "type": "Settlement"
+  },
+  {
+   "name": "Durable Dunn's Sacked Caravan",
+   "lon": -115.1387182,
+   "lat": 36.1821965,
+   "height": 62.7,
+   "type": "Encampment"
+  },
+  {
+   "name": "East Pump Station",
+   "lon": -115.1390964,
+   "lat": 36.181158,
+   "height": 77.7,
+   "type": "Factory"
+  },
+  {
+   "name": "El Dorado Dry Lake",
+   "lon": -115.135046,
+   "lat": 36.1714073,
+   "height": 73.9,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "El Dorado Gas & Service",
+   "lon": -115.1334778,
+   "lat": 36.1700476,
+   "height": 76.9,
+   "type": "Town ruins"
+  },
+  {
+   "name": "El Dorado Substation",
+   "lon": -115.1377359,
+   "lat": 36.1720155,
+   "height": 83.2,
+   "type": "City"
+  },
+  {
+   "name": "El Rey Motel",
+   "lon": -115.1437306,
+   "lat": 36.1795536,
+   "height": 63.7,
+   "type": "Office"
+  },
+  {
+   "name": "Emergency Service Railyard",
+   "lon": -115.1445883,
+   "lat": 36.1633209,
+   "height": 123.3,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Fields' Shack",
+   "lon": -115.137,
+   "lat": 36.1854929,
+   "height": 69.1,
+   "type": "Encampment"
+  },
+  {
+   "name": "Fire Root Cavern",
+   "lon": -115.1321065,
+   "lat": 36.1557853,
+   "height": 18.1,
+   "type": "Cave"
+  },
+  {
+   "name": "Fisherman's Pride Shack",
+   "lon": -115.1317274,
+   "lat": 36.1782491,
+   "height": 39.1,
+   "type": "Encampment"
+  },
+  {
+   "name": "Follower's Outpost",
+   "lon": -115.1372803,
+   "lat": 36.1765986,
+   "height": 66.6,
+   "type": "Encampment"
+  },
+  {
+   "name": "Followers Safehouse",
+   "lon": -115.1511605,
+   "lat": 36.1857629,
+   "height": 109.0,
+   "type": "Settlement"
+  },
+  {
+   "name": "Freeside's East Gate",
+   "lon": -115.1415362,
+   "lat": 36.1832066,
+   "height": 62.2,
+   "type": "City"
+  },
+  {
+   "name": "Freeside's North Gate",
+   "lon": -115.1415374,
+   "lat": 36.1843505,
+   "height": 62.2,
+   "type": "City"
+  },
+  {
+   "name": "Gibson Scrap Yard",
+   "lon": -115.1361711,
+   "lat": 36.1674664,
+   "height": 95.5,
+   "type": "Settlement"
+  },
+  {
+   "name": "Goodsprings",
+   "lon": -115.1512869,
+   "lat": 36.1703286,
+   "height": 133.5,
+   "type": "Encampment"
+  },
+  {
+   "name": "Goodsprings Cave",
+   "lon": -115.1493215,
+   "lat": 36.1692855,
+   "height": 123.9,
+   "type": "Cave"
+  },
+  {
+   "name": "Goodsprings Cemetery",
+   "lon": -115.1498922,
+   "lat": 36.1716266,
+   "height": 149.9,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Goodsprings Source",
+   "lon": -115.1500954,
+   "lat": 36.167687,
+   "height": 103.5,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Great Khan Encampment",
+   "lon": -115.147833,
+   "lat": 36.1721523,
+   "height": 119.7,
+   "type": "Encampment"
+  },
+  {
+   "name": "Griffin Wares Sacked Caravan",
+   "lon": -115.1485981,
+   "lat": 36.1858267,
+   "height": 64.2,
+   "type": "Encampment"
+  },
+  {
+   "name": "Grub n' Gulp Rest Stop",
+   "lon": -115.138904,
+   "lat": 36.1776225,
+   "height": 60.5,
+   "type": "Encampment"
+  },
+  {
+   "name": "Guardian Peak",
+   "lon": -115.1247279,
+   "lat": 36.1791248,
+   "height": 88.1,
+   "type": "Military"
+  },
+  {
+   "name": "Gun Runners",
+   "lon": -115.1418951,
+   "lat": 36.1828059,
+   "height": 68.6,
+   "type": "Factory"
+  },
+  {
+   "name": "Gypsum Train Yard",
+   "lon": -115.1338605,
+   "lat": 36.1808294,
+   "height": 62.2,
+   "type": "City"
+  },
+  {
+   "name": "H&H Tools Factory",
+   "lon": -115.143125,
+   "lat": 36.1846759,
+   "height": 63.9,
+   "type": "Factory"
+  },
+  {
+   "name": "HELIOS One",
+   "lon": -115.1365026,
+   "lat": 36.1687229,
+   "height": 79.4,
+   "type": "City"
+  },
+  {
+   "name": "Harper's Shack",
+   "lon": -115.1417578,
+   "lat": 36.1633054,
+   "height": 139.6,
+   "type": "Settlement"
+  },
+  {
+   "name": "Hidden Supply Cave",
+   "lon": -115.1435026,
+   "lat": 36.1599406,
+   "height": 150.9,
+   "type": "Cave"
+  },
+  {
+   "name": "Hidden Valley",
+   "lon": -115.1426082,
+   "lat": 36.1693757,
+   "height": 97.9,
+   "type": "Military"
+  },
+  {
+   "name": "Highway 95 Viper's Encampment",
+   "lon": -115.1367185,
+   "lat": 36.1636286,
+   "height": 93.7,
+   "type": "Encampment"
+  },
+  {
+   "name": "Hoover Dam",
+   "lon": -115.1281216,
+   "lat": 36.1731892,
+   "height": -2.5,
+   "type": "Monument"
+  },
+  {
+   "name": "Horowitz Farmstead",
+   "lon": -115.1474087,
+   "lat": 36.1864092,
+   "height": 64.7,
+   "type": "Settlement"
+  },
+  {
+   "name": "Hunter's Farm",
+   "lon": -115.1433468,
+   "lat": 36.1749966,
+   "height": 65.5,
+   "type": "Settlement"
+  },
+  {
+   "name": "Ivanpah Dry Lake",
+   "lon": -115.149022,
+   "lat": 36.1603639,
+   "height": 84.6,
+   "type": "Encampment"
+  },
+  {
+   "name": "Ivanpah Race Track",
+   "lon": -115.1483641,
+   "lat": 36.1591881,
+   "height": 78.4,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "Jack Rabbit Springs",
+   "lon": -115.146502,
+   "lat": 36.1606605,
+   "height": 101.8,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Jacobstown",
+   "lon": -115.1572387,
+   "lat": 36.1823816,
+   "height": 224.7,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Jean Sky Diving",
+   "lon": -115.1484529,
+   "lat": 36.1678254,
+   "height": 92.2,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Jimmy's Well",
+   "lon": -115.1370234,
+   "lat": 36.185274,
+   "height": 64.8,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Junction 15 Railway Station",
+   "lon": -115.1424309,
+   "lat": 36.1739284,
+   "height": 63.5,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Lake Las Vegas",
+   "lon": -115.1354847,
+   "lat": 36.1772572,
+   "height": 53.0,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Lake Mead Cave",
+   "lon": -115.127548,
+   "lat": 36.1771792,
+   "height": 23.8,
+   "type": "Cave"
+  },
+  {
+   "name": "Legate's Camp",
+   "lon": -115.1230887,
+   "lat": 36.1724006,
+   "height": 76.8,
+   "type": "Encampment"
+  },
+  {
+   "name": "Legion Raid Camp",
+   "lon": -115.1389678,
+   "lat": 36.1607008,
+   "height": 141.4,
+   "type": "Encampment"
+  },
+  {
+   "name": "Lone Wolf Radio",
+   "lon": -115.1512569,
+   "lat": 36.1661367,
+   "height": 117.4,
+   "type": "Encampment"
+  },
+  {
+   "name": "Lucky Jim Mine",
+   "lon": -115.1313925,
+   "lat": 36.1624306,
+   "height": 72.4,
+   "type": "Cave"
+  },
+  {
+   "name": "Makeshift Great Khan Camp",
+   "lon": -115.1495037,
+   "lat": 36.1731892,
+   "height": 89.4,
+   "type": "Encampment"
+  },
+  {
+   "name": "Matthews Animal Husbandry Farm",
+   "lon": -115.1387516,
+   "lat": 36.1565051,
+   "height": 117.3,
+   "type": "Settlement"
+  },
+  {
+   "name": "Mesquite Mountains Camp Site",
+   "lon": -115.1531904,
+   "lat": 36.1594664,
+   "height": 123.7,
+   "type": "Encampment"
+  },
+  {
+   "name": "Mesquite Mountains Crater",
+   "lon": -115.1540165,
+   "lat": 36.1618916,
+   "height": 124.5,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Mojave Drive-in",
+   "lon": -115.1456452,
+   "lat": 36.1563553,
+   "height": 98.4,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Mojave Outpost",
+   "lon": -115.1531962,
+   "lat": 36.1569252,
+   "height": 157.5,
+   "type": "Military"
+  },
+  {
+   "name": "Mole Rat Ranch",
+   "lon": -115.1392165,
+   "lat": 36.1843605,
+   "height": 63.8,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "Monte Carlo Suites",
+   "lon": -115.1460479,
+   "lat": 36.1824733,
+   "height": 65.2,
+   "type": "Office"
+  },
+  {
+   "name": "Morning Star Cavern",
+   "lon": -115.150567,
+   "lat": 36.1569969,
+   "height": 115.2,
+   "type": "Cave"
+  },
+  {
+   "name": "Mountain Shadows Campground",
+   "lon": -115.1344799,
+   "lat": 36.176022,
+   "height": 84.4,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "NCR Correctional Facility",
+   "lon": -115.1452823,
+   "lat": 36.1666356,
+   "height": 89.9,
+   "type": "Town ruins"
+  },
+  {
+   "name": "NCR Ranger Safehouse",
+   "lon": -115.1405573,
+   "lat": 36.1734948,
+   "height": 78.1,
+   "type": "Settlement"
+  },
+  {
+   "name": "NCR Sharecropper Farms",
+   "lon": -115.1414818,
+   "lat": 36.1809321,
+   "height": 69.5,
+   "type": "Encampment"
+  },
+  {
+   "name": "Neil's Shack",
+   "lon": -115.1416568,
+   "lat": 36.1716197,
+   "height": 93.0,
+   "type": "Encampment"
+  },
+  {
+   "name": "Nellis Air Force Base",
+   "lon": -115.1345432,
+   "lat": 36.1861686,
+   "height": 62.5,
+   "type": "City"
+  },
+  {
+   "name": "Nellis Array",
+   "lon": -115.1323704,
+   "lat": 36.1891642,
+   "height": 62.3,
+   "type": "Military"
+  },
+  {
+   "name": "Nellis Hangars",
+   "lon": -115.1343389,
+   "lat": 36.1887045,
+   "height": 62.9,
+   "type": "Military"
+  },
+  {
+   "name": "Nelson",
+   "lon": -115.131524,
+   "lat": 36.1656834,
+   "height": 73.8,
+   "type": "City"
+  },
+  {
+   "name": "Nevada Highway Patrol Station",
+   "lon": -115.1501931,
+   "lat": 36.160587,
+   "height": 75.7,
+   "type": "Office"
+  },
+  {
+   "name": "New Vegas Medical Clinic",
+   "lon": -115.139766,
+   "lat": 36.183884,
+   "height": 67.7,
+   "type": "Office"
+  },
+  {
+   "name": "New Vegas Steel",
+   "lon": -115.1449128,
+   "lat": 36.1787645,
+   "height": 77.2,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "Nipton",
+   "lon": -115.1451945,
+   "lat": 36.157958,
+   "height": 99.0,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Nipton Road Pit Stop",
+   "lon": -115.148303,
+   "lat": 36.1578594,
+   "height": 80.9,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "Nipton Road Reststop",
+   "lon": -115.1512437,
+   "lat": 36.1589704,
+   "height": 93.0,
+   "type": "Encampment"
+  },
+  {
+   "name": "Nopah Cave",
+   "lon": -115.1479827,
+   "lat": 36.1771901,
+   "height": 64.9,
+   "type": "Cave"
+  },
+  {
+   "name": "North Vegas Square",
+   "lon": -115.1423675,
+   "lat": 36.1847057,
+   "height": 62.6,
+   "type": "City"
+  },
+  {
+   "name": "Northern Passage",
+   "lon": -115.1434921,
+   "lat": 36.1870003,
+   "height": 76.5,
+   "type": "Cave"
+  },
+  {
+   "name": "Novac",
+   "lon": -115.1364697,
+   "lat": 36.1658128,
+   "height": 100.8,
+   "type": "Encampment"
+  },
+  {
+   "name": "Old Nuclear Test Site",
+   "lon": -115.1411516,
+   "lat": 36.1550026,
+   "height": 141.8,
+   "type": "Military"
+  },
+  {
+   "name": "Poseidon Gas Station",
+   "lon": -115.1476086,
+   "lat": 36.1789001,
+   "height": 61.7,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Powder Ganger Camp East",
+   "lon": -115.1435612,
+   "lat": 36.1652291,
+   "height": 111.3,
+   "type": "Encampment"
+  },
+  {
+   "name": "Powder Ganger Camp North",
+   "lon": -115.1453607,
+   "lat": 36.1685519,
+   "height": 83.6,
+   "type": "Settlement"
+  },
+  {
+   "name": "Powder Ganger Camp South",
+   "lon": -115.1460593,
+   "lat": 36.1652414,
+   "height": 98.2,
+   "type": "Encampment"
+  },
+  {
+   "name": "Powder Ganger Camp West",
+   "lon": -115.1485462,
+   "lat": 36.1668674,
+   "height": 86.9,
+   "type": "Encampment"
+  },
+  {
+   "name": "Primm",
+   "lon": -115.1490229,
+   "lat": 36.1631986,
+   "height": 83.2,
+   "type": "City"
+  },
+  {
+   "name": "Primm Pass",
+   "lon": -115.1429294,
+   "lat": 36.1634229,
+   "height": 157.2,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Quarry Junction",
+   "lon": -115.1456883,
+   "lat": 36.1720864,
+   "height": 81.5,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "REPCONN Headquarters",
+   "lon": -115.1397664,
+   "lat": 36.1753718,
+   "height": 74.0,
+   "type": "City"
+  },
+  {
+   "name": "REPCONN Test Site",
+   "lon": -115.141347,
+   "lat": 36.1661773,
+   "height": 104.7,
+   "type": "Factory"
+  },
+  {
+   "name": "Raided Farmstead",
+   "lon": -115.139233,
+   "lat": 36.1580104,
+   "height": 122.1,
+   "type": "Encampment"
+  },
+  {
+   "name": "Ranger Morales' Corpse",
+   "lon": -115.1389452,
+   "lat": 36.1755753,
+   "height": 64.9,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Ranger Station Alpha",
+   "lon": -115.1326433,
+   "lat": 36.1752715,
+   "height": 64.5,
+   "type": "Military"
+  },
+  {
+   "name": "Ranger Station Bravo",
+   "lon": -115.1266297,
+   "lat": 36.1818757,
+   "height": 75.0,
+   "type": "Military"
+  },
+  {
+   "name": "Ranger Station Charlie",
+   "lon": -115.1392342,
+   "lat": 36.1635698,
+   "height": 100.9,
+   "type": "Military"
+  },
+  {
+   "name": "Ranger Station Delta",
+   "lon": -115.1298595,
+   "lat": 36.1704265,
+   "height": 57.5,
+   "type": "Military"
+  },
+  {
+   "name": "Ranger Station Echo",
+   "lon": -115.1314656,
+   "lat": 36.1608632,
+   "height": 88.6,
+   "type": "Military"
+  },
+  {
+   "name": "Ranger Station Foxtrot",
+   "lon": -115.1508042,
+   "lat": 36.1817104,
+   "height": 137.2,
+   "type": "Military"
+  },
+  {
+   "name": "Raul's Shack",
+   "lon": -115.1354389,
+   "lat": 36.1832782,
+   "height": 72.4,
+   "type": "Settlement"
+  },
+  {
+   "name": "Red Rock Canyon",
+   "lon": -115.1520867,
+   "lat": 36.1786109,
+   "height": 62.5,
+   "type": "Encampment"
+  },
+  {
+   "name": "Red Rock Drug Lab",
+   "lon": -115.1524291,
+   "lat": 36.1800685,
+   "height": 65.4,
+   "type": "Encampment"
+  },
+  {
+   "name": "Remnants Bunker",
+   "lon": -115.1522941,
+   "lat": 36.1821283,
+   "height": 144.5,
+   "type": "Cave"
+  },
+  {
+   "name": "Ruby Hill Mine",
+   "lon": -115.1525868,
+   "lat": 36.1861671,
+   "height": 129.3,
+   "type": "Cave"
+  },
+  {
+   "name": "Samson Rock Crushing Plant",
+   "lon": -115.1450419,
+   "lat": 36.1765323,
+   "height": 71.8,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "Scavenger Platform",
+   "lon": -115.1305824,
+   "lat": 36.1770846,
+   "height": 37.9,
+   "type": "Encampment"
+  },
+  {
+   "name": "Scorpion Gulch",
+   "lon": -115.1405503,
+   "lat": 36.1682093,
+   "height": 99.5,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Searchlight Airport",
+   "lon": -115.134665,
+   "lat": 36.1550281,
+   "height": 86.6,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "Searchlight East Gold Mine",
+   "lon": -115.1336907,
+   "lat": 36.1569901,
+   "height": 73.7,
+   "type": "Cave"
+  },
+  {
+   "name": "Searchlight North Gold Mine",
+   "lon": -115.1342506,
+   "lat": 36.1590206,
+   "height": 107.6,
+   "type": "Cave"
+  },
+  {
+   "name": "Silver Peak Mine",
+   "lon": -115.1532598,
+   "lat": 36.1839287,
+   "height": 145.9,
+   "type": "Cave"
+  },
+  {
+   "name": "Sloan",
+   "lon": -115.1447029,
+   "lat": 36.1709927,
+   "height": 88.1,
+   "type": "Encampment"
+  },
+  {
+   "name": "Smith Mesa Prospector Camp",
+   "lon": -115.1304149,
+   "lat": 36.1565903,
+   "height": -19.2,
+   "type": "Encampment"
+  },
+  {
+   "name": "Sniper's Nest",
+   "lon": -115.1319047,
+   "lat": 36.158555,
+   "height": 52.0,
+   "type": "Encampment"
+  },
+  {
+   "name": "Snyder Prospector Camp",
+   "lon": -115.1345791,
+   "lat": 36.1613155,
+   "height": 92.7,
+   "type": "Encampment"
+  },
+  {
+   "name": "South Cistern",
+   "lon": -115.143892,
+   "lat": 36.1834487,
+   "height": 63.6,
+   "type": "Factory"
+  },
+  {
+   "name": "South Vegas Ruins East Entrance",
+   "lon": -115.1454452,
+   "lat": 36.1787857,
+   "height": 62.8,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "South Vegas Ruins West Entrance",
+   "lon": -115.1468011,
+   "lat": 36.179298,
+   "height": 62.8,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "Southern Nevada Wind Farm",
+   "lon": -115.1332067,
+   "lat": 36.1676117,
+   "height": 88.0,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Spring Mt. Ranch State Park",
+   "lon": -115.1515579,
+   "lat": 36.1760389,
+   "height": 66.3,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Sunset Sarsaparilla Headquarters",
+   "lon": -115.145949,
+   "lat": 36.1809289,
+   "height": 76.3,
+   "type": "Factory"
+  },
+  {
+   "name": "Techatticup Mine",
+   "lon": -115.1302928,
+   "lat": 36.1639087,
+   "height": 73.3,
+   "type": "Cave"
+  },
+  {
+   "name": "The Basincreek Building",
+   "lon": -115.1436298,
+   "lat": 36.1770635,
+   "height": 62.0,
+   "type": "Office"
+  },
+  {
+   "name": "The Devil's Gullet",
+   "lon": -115.1486894,
+   "lat": 36.1697412,
+   "height": 102.5,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "The Devil's Throat",
+   "lon": -115.1237857,
+   "lat": 36.1825184,
+   "height": 41.8,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "The Fort",
+   "lon": -115.125536,
+   "lat": 36.1757861,
+   "height": 111.0,
+   "type": "Military"
+  },
+  {
+   "name": "The Prospector's Den",
+   "lon": -115.1461891,
+   "lat": 36.1616749,
+   "height": 113.8,
+   "type": "Settlement"
+  },
+  {
+   "name": "The Thorn",
+   "lon": -115.1458069,
+   "lat": 36.1836289,
+   "height": 62.4,
+   "type": "Sewer ruins"
+  },
+  {
+   "name": "Toxic Dump Site",
+   "lon": -115.1345079,
+   "lat": 36.1655048,
+   "height": 99.7,
+   "type": "Town ruins"
+  },
+  {
+   "name": "Tribal Village",
+   "lon": -115.1517695,
+   "lat": 36.1738978,
+   "height": 111.5,
+   "type": "Encampment"
+  },
+  {
+   "name": "Vault 11",
+   "lon": -115.135825,
+   "lat": 36.1727754,
+   "height": 75.6,
+   "type": "Vault"
+  },
+  {
+   "name": "Vault 19",
+   "lon": -115.1469446,
+   "lat": 36.1749039,
+   "height": 67.9,
+   "type": "Vault"
+  },
+  {
+   "name": "Vault 22",
+   "lon": -115.1500944,
+   "lat": 36.1837851,
+   "height": 68.6,
+   "type": "Vault"
+  },
+  {
+   "name": "Vault 34",
+   "lon": -115.1367674,
+   "lat": 36.1806209,
+   "height": 71.7,
+   "type": "Vault"
+  },
+  {
+   "name": "Walking Box Cavern",
+   "lon": -115.1420861,
+   "lat": 36.1608675,
+   "height": 157.7,
+   "type": "Cave"
+  },
+  {
+   "name": "West Pump Station",
+   "lon": -115.1440828,
+   "lat": 36.1783538,
+   "height": 68.6,
+   "type": "Factory"
+  },
+  {
+   "name": "Westside South Entrance",
+   "lon": -115.1458036,
+   "lat": 36.183861,
+   "height": 67.9,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "Westside West Entrance",
+   "lon": -115.1466314,
+   "lat": 36.1844902,
+   "height": 67.9,
+   "type": "Urban ruins"
+  },
+  {
+   "name": "Whittaker Farmstead",
+   "lon": -115.145539,
+   "lat": 36.1750295,
+   "height": 67.1,
+   "type": "Settlement"
+  },
+  {
+   "name": "Wolfhorn Ranch",
+   "lon": -115.1410837,
+   "lat": 36.1589724,
+   "height": 148.6,
+   "type": "Encampment"
+  },
+  {
+   "name": "Wrecked Highwayman",
+   "lon": -115.1355178,
+   "lat": 36.162367,
+   "height": 88.7,
+   "type": "Natural landmark"
+  },
+  {
+   "name": "Yangtze Memorial",
+   "lon": -115.1477488,
+   "lat": 36.1704608,
+   "height": 124.8,
+   "type": "Monument"
+  }
+ ]
+}

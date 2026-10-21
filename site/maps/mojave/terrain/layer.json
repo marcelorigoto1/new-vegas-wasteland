@@ -1,0 +1,1 @@
+{"tilejson": "2.1.0", "format": "heightmap-1.0", "version": "1.0.0", "scheme": "tms", "projection": "EPSG:4326", "bounds": [-180, -90, 180, 90], "tiles": ["{z}/{x}/{y}.terrain"]}

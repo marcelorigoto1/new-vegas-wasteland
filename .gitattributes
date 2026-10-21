@@ -1,0 +1,6 @@
+* text=auto
+*.terrain binary
+*.bin binary
+*.glb binary
+*.jpg binary
+*.png binary

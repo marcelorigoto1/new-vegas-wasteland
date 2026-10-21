@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pip-Boy 3000 · Maps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.143.0/Build/Cesium/Widgets/widgets.css">
+<script src="https://cdn.jsdelivr.net/npm/cesium@1.143.0/Build/Cesium/Cesium.js"></script>
+<style>
+  :root {
+    --amber: #ffb642;
+    --amber-hi: #ffd27a;
+    --amber-dim: #b07a24;
+    --amber-faint: rgba(255, 182, 66, 0.14);
+    --amber-line: rgba(255, 182, 66, 0.45);
+    --bg: #080602;
+    --panel: rgba(14, 10, 3, 0.9);
+    --glow: 0 0 6px rgba(255, 182, 66, 0.55);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--amber);
+    font: 15px/1.35 "Share Tech Mono", "Consolas", ui-monospace, monospace; overflow: hidden; }
+  #map { position: absolute; inset: 0; }
+  /* light CRT vignette over the whole screen */
+  #vignette { position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%); }
+
+  /* ---------- Pip-Boy panel ---------- */
+  #pip { position: absolute; top: 14px; left: 14px; bottom: 14px; width: 360px; z-index: 2;
+    display: flex; flex-direction: column; background: var(--panel); border: 2px solid var(--amber-line);
+    border-radius: 10px; box-shadow: 0 0 22px rgba(255, 170, 40, 0.18), inset 0 0 40px rgba(255, 170, 40, 0.07);
+    text-shadow: var(--glow); overflow: hidden; }
+  #pip::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 8px;
+    background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px);
+    animation: flicker 6s infinite steps(1); }
+  @keyframes flicker { 0%, 100% { opacity: 1; } 47% { opacity: 0.86; } 48% { opacity: 1; } 83% { opacity: 0.93; } }
+  @media (prefers-reduced-motion: reduce) { #pip::after { animation: none; } }
+
+  #pip header { padding: 10px 14px 0; }
+  .brand { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px;
+    color: var(--amber-dim); letter-spacing: 0.12em; }
+  #mapSelect { appearance: none; width: 100%; margin: 6px 0 8px; padding: 6px 30px 6px 8px; cursor: pointer;
+    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23ffb642' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 10px center;
+    color: var(--amber-hi); border: 1px solid var(--amber-line); border-radius: 3px;
+    font: inherit; font-size: 20px; letter-spacing: 0.08em; text-transform: uppercase; text-shadow: var(--glow); }
+  #mapSelect option { background: #140e04; color: var(--amber); }
+  nav { display: flex; gap: 0; border-bottom: 2px solid var(--amber-line); }
+  nav button { flex: 1; padding: 6px 0 5px; background: none; border: none; color: var(--amber-dim);
+    font: inherit; font-size: 16px; letter-spacing: 0.1em; cursor: pointer; position: relative; text-shadow: inherit; }
+  nav button[aria-selected="true"] { color: var(--amber-hi); }
+  nav button[aria-selected="true"]::before { content: ""; position: absolute; left: 8%; right: 8%; bottom: -2px;
+    height: 10px; border: 2px solid var(--amber); border-bottom: none; border-radius: 2px 2px 0 0; }
+  nav button:focus-visible { outline: 1px dashed var(--amber); outline-offset: -3px; }
+
+  .tab { display: none; flex: 1; min-height: 0; flex-direction: column; }
+  .tab.active { display: flex; }
+  .tools { padding: 10px 14px 8px; display: grid; gap: 8px; }
+  #search { width: 100%; padding: 6px 8px; background: var(--amber-faint); color: var(--amber-hi);
+    border: 1px solid var(--amber-line); border-radius: 3px; font: inherit; text-shadow: var(--glow); }
+  #search::placeholder { color: var(--amber-dim); }
+  #search:focus { outline: none; border-color: var(--amber); }
+  ul.list { list-style: none; margin: 0; padding: 2px 0 8px; overflow-y: auto; flex: 1;
+    scrollbar-width: thin; scrollbar-color: var(--amber-dim) transparent; }
+  ul.list li { padding: 4px 14px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; }
+  ul.list li .kind { color: var(--amber-dim); font-size: 12px; white-space: nowrap; align-self: center; }
+  ul.list li:hover, ul.list li:focus-visible, ul.list li.sel { background: var(--amber); color: #120c02;
+    text-shadow: none; outline: none; }
+  ul.list li:hover .kind, ul.list li:focus-visible .kind, ul.list li.sel .kind { color: #3a2706; }
+
+  /* settings tab */
+  .rows { padding: 12px 14px; display: grid; gap: 10px; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; }
+  .row input { position: absolute; opacity: 0; pointer-events: none; }
+  .box { width: 16px; height: 16px; border: 2px solid var(--amber); flex: none; box-shadow: var(--glow); }
+  .row input:checked + .box { background: var(--amber); }
+  .row input:focus-visible + .box { outline: 1px dashed var(--amber); outline-offset: 3px; }
+  .note { color: var(--amber-dim); font-size: 12px; padding: 0 14px 12px; }
+
+  /* radio tab */
+  #stations li .kind { min-width: 3.5em; text-align: right; }
+  #stations li.off { opacity: 0.45; }
+  #wave { display: block; width: calc(100% - 28px); height: 110px; margin: 6px 14px 4px;
+    border: 1px solid var(--amber-line); background:
+      linear-gradient(var(--amber-faint) 1px, transparent 1px) 0 0 / 100% 25%,
+      linear-gradient(90deg, var(--amber-faint) 1px, transparent 1px) 0 0 / 10% 100%; }
+  .radio-info { padding: 4px 14px 10px; display: grid; gap: 6px; }
+  #nowPlaying { color: var(--amber-hi); min-height: 1.35em; }
+  #subtitle { min-height: 3.9em; font-size: 13px; color: var(--amber); opacity: 0.9; }
+  .signal { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--amber-dim); }
+  .bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 12px; }
+  .bars i { width: 4px; background: var(--amber-faint); border: 1px solid var(--amber-dim); }
+  .bars i.on { background: var(--amber); border-color: var(--amber); }
+  .radio-controls { display: flex; gap: 8px; align-items: center; }
+  .btn { padding: 4px 10px; background: none; border: 1px solid var(--amber); color: var(--amber);
+    font: inherit; cursor: pointer; text-shadow: inherit; border-radius: 2px; }
+  .btn:hover, .btn:focus-visible { background: var(--amber); color: #120c02; text-shadow: none; outline: none; }
+  input[type=range] { flex: 1; accent-color: var(--amber); }
+
+  #status { display: flex; justify-content: space-between; gap: 8px; padding: 6px 14px; font-size: 12px;
+    border-top: 2px solid var(--amber-line); color: var(--amber-dim); background: rgba(255, 182, 66, 0.05); }
+  #status span:first-child { color: var(--amber); }
+  #onair { display: none; padding: 4px 14px; font-size: 12px; border-top: 1px solid var(--amber-line);
+    color: var(--amber-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #onair.show { display: block; }
+  #toggle { display: none; }
+
+  /* Cesium chrome in Pip-Boy colours */
+  .cesium-viewer .cesium-button.cesium-toolbar-button, .cesium-viewer .cesium-fullscreenButton {
+    background: var(--panel) !important; border: 1px solid var(--amber-line) !important; border-radius: 4px;
+    fill: var(--amber) !important; color: var(--amber) !important; }
+  .cesium-viewer .cesium-button.cesium-toolbar-button:hover, .cesium-viewer .cesium-fullscreenButton:hover {
+    background: var(--amber) !important; fill: #120c02 !important; box-shadow: var(--glow) !important; }
+  .cesium-viewer .cesium-button svg path, .cesium-viewer .cesium-svgPath-svg path { fill: currentColor; }
+  .cesium-viewer .cesium-button.cesium-toolbar-button:hover svg path { fill: #120c02; }
+  .cesium-viewer-bottom { opacity: 0.45; }
+  .cesium-navigation-help, .cesium-navigation-help-instructions { background: var(--panel); color: var(--amber);
+    border-color: var(--amber-line); font-family: inherit; }
+
+  @media (max-width: 700px) {
+    #pip { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; height: 52%; }
+    #pip.collapsed { height: auto; }
+    #pip.collapsed nav, #pip.collapsed .tab, #pip.collapsed #status { display: none; }
+    #toggle { display: inline-block; }
+    #mapSelect { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="vignette"></div>
+<aside id="pip" aria-label="Pip-Boy">
+  <header>
+    <div class="brand"><span>ROBCO PIP-BOY 3000</span><button id="toggle" class="btn" aria-label="Show or hide panel">☰</button></div>
+    <select id="mapSelect" aria-label="Choose map"></select>
+    <nav role="tablist">
+      <button role="tab" id="t-locations" aria-controls="p-locations" aria-selected="true">LOCATIONS</button>
+      <button role="tab" id="t-radio" aria-controls="p-radio" aria-selected="false">RADIO</button>
+      <button role="tab" id="t-settings" aria-controls="p-settings" aria-selected="false">SETTINGS</button>
+    </nav>
+  </header>
+
+  <section class="tab active" id="p-locations" role="tabpanel" aria-labelledby="t-locations">
+    <div class="tools"><input id="search" type="search" placeholder="> search location_" aria-label="Search location"></div>
+    <ul class="list" id="list"></ul>
+  </section>
+
+  <section class="tab" id="p-radio" role="tabpanel" aria-labelledby="t-radio">
+    <ul class="list" id="stations" style="flex: none; max-height: 40%;"></ul>
+    <canvas id="wave" aria-hidden="true"></canvas>
+    <div class="radio-info">
+      <div id="nowPlaying">Select a station.</div>
+      <div id="subtitle"></div>
+      <div class="signal">SIGNAL <span class="bars" id="bars"><i style="height:4px"></i><i style="height:7px"></i><i style="height:10px"></i><i style="height:12px"></i></span><span id="signalText"></span></div>
+      <div class="radio-controls">
+        <button class="btn" id="radioOff">OFF</button>
+        <button class="btn" id="radioSkip">SKIP</button>
+        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volume">
+      </div>
+    </div>
+  </section>
+
+  <section class="tab" id="p-settings" role="tabpanel" aria-labelledby="t-settings">
+    <div class="rows" id="layers">
+      <label class="row"><span>Location markers</span><input id="labels" type="checkbox" checked><span class="box"></span></label>
+    </div>
+    <p class="note">Terrain, textures, models and radio extracted from Fallout: New Vegas. Drag to pan, Ctrl+drag to tilt, scroll to zoom.</p>
+  </section>
+
+  <div id="onair" aria-live="polite"></div>
+  <footer id="status"><span id="coords">--</span><span id="clock"></span></footer>
+</aside>
+
+<script type="module">
+// only maps whose data is present: work-in-progress maps are kept locally and left out of the published site
+const listed = await (await fetch("maps.json")).json();
+const present = await Promise.all(listed.map((m) =>
+  fetch(`maps/${m.id}/world.json`, { method: "HEAD" }).then((r) => r.ok).catch(() => false)));
+const maps = listed.filter((_, i) => present[i]);
+const params = new URLSearchParams(location.search);
+const current = maps.find((m) => m.id === params.get("map")) ?? maps[0];
+const base = `maps/${current.id}/`;
+const $ = (id) => document.getElementById(id);
+
+const select = $("mapSelect");
+for (const m of maps) select.add(new Option(m.title, m.id, false, m.id === current.id));
+select.onchange = () => { location.search = `?map=${select.value}`; };
+document.title = `${current.title} · Pip-Boy 3000`;
+
+// ---------- tabs ----------
+const tabs = [...document.querySelectorAll("nav [role=tab]")];
+function showTab(tab) {
+  for (const t of tabs) {
+    const on = t === tab;
+    t.setAttribute("aria-selected", on);
+    t.tabIndex = on ? 0 : -1;
+    $(t.getAttribute("aria-controls")).classList.toggle("active", on);
+  }
+  try { localStorage.setItem("pipTab", tab.id); } catch {}
+}
+tabs.forEach((t) => {
+  t.onclick = () => showTab(t);
+  t.onkeydown = (ev) => {
+    const d = ev.key === "ArrowRight" ? 1 : ev.key === "ArrowLeft" ? -1 : 0;
+    if (d) { const n = tabs[(tabs.indexOf(t) + d + tabs.length) % tabs.length]; showTab(n); n.focus(); }
+  };
+});
+try { const saved = $(localStorage.getItem("pipTab")); if (saved) showTab(saved); } catch {}
+$("toggle").onclick = () => $("pip").classList.toggle("collapsed");
+
+// ---------- globe ----------
+const world = await (await fetch(base + "world.json")).json();
+const [w, s, e, n] = world.rectangle;
+const rect = Cesium.Rectangle.fromDegrees(w, s, e, n);
+
+const viewer = new Cesium.Viewer("map", {
+  baseLayer: false,
+  baseLayerPicker: false,
+  geocoder: false,
+  timeline: false,
+  animation: false,
+  sceneModePicker: false,
+  infoBox: false,
+  selectionIndicator: false,
+  navigationInstructionsInitiallyVisible: false,
+  terrainProvider: await Cesium.CesiumTerrainProvider.fromUrl(base + "terrain/"),
+});
+window.viewer = viewer;   // handy for poking around in the browser console
+
+viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+  url: base + "imagery/{z}/{x}/{y}.jpg",
+  tilingScheme: new Cesium.GeographicTilingScheme(),
+  rectangle: rect,
+  maximumLevel: world.imageryMaxLevel,
+  credit: "Fallout: New Vegas © Bethesda Softworks / Obsidian Entertainment",
+}));
+
+const scene = viewer.scene;
+const globe = scene.globe;
+globe.cartographicLimitRectangle = rect;   // draw only the game world
+globe.baseColor = Cesium.Color.fromCssColorString("#080602");
+globe.showGroundAtmosphere = false;
+globe.depthTestAgainstTerrain = true;
+globe.maximumScreenSpaceError = 1.5;
+scene.verticalExaggeration = 1.0;   // always true scale: models would stretch with exaggeration
+// fixed mid-afternoon in Las Vegas (UTC-7) so models are sunlit and the sky is daytime
+viewer.clock.currentTime = Cesium.JulianDate.fromIso8601("2026-06-21T22:00:00Z");
+viewer.clock.shouldAnimate = false;
+scene.fog.density = 0.00008;
+scene.skyAtmosphere.hueShift = -0.05;
+scene.skyAtmosphere.saturationShift = -0.3;
+
+const ssc = scene.screenSpaceCameraController;
+ssc.minimumZoomDistance = 2;
+ssc.maximumZoomDistance = 25000;
+
+// 3D layers (buildings / placed models) with a toggle each
+for (const layer of world.tilesets ?? []) {
+  const tileset = await Cesium.Cesium3DTileset.fromUrl(base + layer.url, { maximumScreenSpaceError: 16 });
+  scene.primitives.add(tileset);
+  const label = document.createElement("label");
+  label.className = "row";
+  const text = document.createElement("span");
+  text.textContent = layer.name;
+  const box = document.createElement("input");
+  box.type = "checkbox";
+  box.checked = true;
+  box.onchange = () => { tileset.show = box.checked; };
+  const mark = document.createElement("span");
+  mark.className = "box";
+  label.append(text, box, mark);
+  $("layers").append(label);
+}
+
+const [lon0, lat0] = world.center;
+const metresPerDegLat = 111320;
+function home(duration = 2) {
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(lon0, lat0 - world.size / metresPerDegLat, world.size * 0.7),
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-38), roll: 0 },
+    duration,
+  });
+}
+viewer.homeButton.viewModel.command.beforeExecute.addEventListener((ev) => { ev.cancel = true; home(); });
+home(0);
+
+// ---------- map markers ----------
+const AMBER = Cesium.Color.fromCssColorString("#ffb642");
+const labelStyle = {
+  font: "15px 'Share Tech Mono', Consolas, monospace",
+  fillColor: Cesium.Color.fromCssColorString("#ffd27a"),
+  outlineColor: Cesium.Color.fromCssColorString("#140c00"),
+  outlineWidth: 4,
+  style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+  verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+  pixelOffset: new Cesium.Cartesian2(0, -12),
+  heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+  disableDepthTestDistance: Number.POSITIVE_INFINITY,
+  distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 2200),
+  translucencyByDistance: new Cesium.NearFarScalar(1200, 1.0, 2200, 0.0),
+};
+const markers = new Cesium.CustomDataSource("markers");
+for (const m of world.markers) {
+  m.entity = markers.entities.add({
+    name: m.name,
+    position: Cesium.Cartesian3.fromDegrees(m.lon, m.lat),
+    point: {
+      pixelSize: 8,
+      color: AMBER,
+      outlineColor: Cesium.Color.fromCssColorString("#140c00"),
+      outlineWidth: 2,
+      scaleByDistance: new Cesium.NearFarScalar(1500, 1.0, 9000, 0.45),
+      translucencyByDistance: new Cesium.NearFarScalar(3000, 1.0, 9000, 0.5),
+      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    },
+    label: { text: m.name.toUpperCase(), ...labelStyle },
+  });
+}
+viewer.dataSources.add(markers);
+
+let selectedLi = null;
+function flyToMarker(m, li) {
+  selectedLi?.classList.remove("sel");
+  selectedLi = li ?? [...$("list").children].find((x) => x.marker === m) ?? null;
+  selectedLi?.classList.add("sel");
+  const target = Cesium.Cartesian3.fromDegrees(m.lon, m.lat, m.height);
+  viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(target, 60), {
+    offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-30), 600),
+    duration: 2,
+  });
+}
+
+new Cesium.ScreenSpaceEventHandler(scene.canvas).setInputAction((click) => {
+  const picked = scene.pick(click.position);
+  const m = picked && world.markers.find((x) => x.entity === picked.id);
+  if (m) flyToMarker(m);
+}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+const list = $("list");
+function renderList(q = "") {
+  list.replaceChildren();
+  const needle = q.trim().toLowerCase();
+  for (const m of world.markers) {
+    if (needle && !m.name.toLowerCase().includes(needle)) continue;
+    const li = document.createElement("li");
+    li.tabIndex = 0;
+    li.marker = m;
+    const name = document.createElement("span");
+    name.textContent = m.name;
+    const type = document.createElement("span");
+    type.className = "kind";
+    type.textContent = m.type;
+    li.append(name, type);
+    li.onclick = () => flyToMarker(m, li);
+    li.onkeydown = (ev) => { if (ev.key === "Enter") flyToMarker(m, li); };
+    list.append(li);
+  }
+}
+renderList();
+$("search").addEventListener("input", (ev) => renderList(ev.target.value));
+$("labels").addEventListener("change", (ev) => { markers.show = ev.target.checked; });
+
+// ---------- status bar ----------
+const fmt = (v, pos, neg) => `${Math.abs(v).toFixed(4)}°${v >= 0 ? pos : neg}`;
+function updateStatus() {
+  const c = viewer.camera.positionCartographic;
+  $("coords").textContent = `${fmt(Cesium.Math.toDegrees(c.latitude), "N", "S")} ${fmt(Cesium.Math.toDegrees(c.longitude), "E", "W")} · ${Math.round(c.height)} M`;
+}
+viewer.camera.changed.addEventListener(updateStatus);
+viewer.camera.percentageChanged = 0.01;
+updateStatus();
+function tick() {
+  const d = new Date();
+  $("clock").textContent = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}.2281 ${d.toTimeString().slice(0, 5)}`;
+}
+tick();
+setInterval(tick, 10000);
+
+// ---------- radio ----------
+// radio data is generated locally from the game (build_radio.py) and not published; without it the tab is hidden
+const radio = await fetch("radio/radio.json").then((r) => (r.ok ? r.json() : null)).catch(() => null) ?? { stations: [] };
+if (!radio.stations.length) {
+  const t = $("t-radio");
+  tabs.splice(tabs.indexOf(t), 1);
+  t.hidden = true;
+  if (t.getAttribute("aria-selected") === "true") {
+    t.setAttribute("aria-selected", false);
+    $("p-radio").classList.remove("active");
+    showTab(tabs[0]);
+  }
+}
+const R = "radio/";
+let ctx, music, musicGain, noiseGain, master, analyser, audioEl;
+let station = null, queue = [], songsSinceNews = 0, lastSong = null;
+
+function initAudio() {
+  if (ctx) return;
+  ctx = new AudioContext();
+  master = ctx.createGain();
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 2048;
+  master.connect(analyser).connect(ctx.destination);
+  audioEl = new Audio();
+  audioEl.crossOrigin = "anonymous";
+  music = ctx.createMediaElementSource(audioEl);
+  musicGain = ctx.createGain();
+  music.connect(musicGain).connect(master);
+  // looping band-limited white noise for radio static
+  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const noise = ctx.createBufferSource();
+  noise.buffer = buf;
+  noise.loop = true;
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.frequency.value = 2200;
+  band.Q.value = 0.7;
+  noiseGain = ctx.createGain();
+  noiseGain.gain.value = 0;
+  noise.connect(band).connect(noiseGain).connect(master);
+  noise.start();
+  master.gain.value = Number($("volume").value);
+  audioEl.addEventListener("ended", playNext);
+  audioEl.addEventListener("error", playNext);
+}
+
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+// Builds the next stretch of programme: Mr. New Vegas introduces songs and reads the news every few songs.
+function refill() {
+  const dj = (role) => station.dj.filter((d) => d.role === role);
+  if (station.dj.length && songsSinceNews >= 3 && dj("news").length) {
+    songsSinceNews = 0;
+    for (const role of ["news_intro", "news", "news_post"]) {
+      const seg = dj(role);
+      if (seg.length) queue.push(...pick(seg).lines.map((l) => ({ ...l, dj: true })));
+    }
+  }
+  if (dj("intro").length && Math.random() < 0.5) queue.push(...pick(dj("intro")).lines.map((l) => ({ ...l, dj: true })));
+  let song;
+  do song = pick(station.songs); while (station.songs.length > 1 && song === lastSong);
+  lastSong = song;
+  songsSinceNews++;
+  queue.push(song);
+}
+
+function playNext() {
+  if (!station) return;
+  if (!queue.length) refill();
+  const item = queue.shift();
+  audioEl.src = R + item.file;
+  audioEl.play().catch(() => {});
+  if (item.dj) {
+    $("nowPlaying").textContent = `${station.name.toUpperCase()} · MR. NEW VEGAS`;
+    $("subtitle").textContent = `“${item.text}”`;
+    $("onair").textContent = `♪ ${station.name} · Mr. New Vegas`;
+  } else {
+    $("nowPlaying").textContent = `♪ ${item.title}`;
+    $("subtitle").textContent = station.name;
+    $("onair").textContent = `♪ ${station.name} · ${item.title}`;
+  }
+  $("onair").classList.add("show");
+}
+
+function tune(st) {
+  initAudio();
+  ctx.resume();
+  station = st;
+  queue = [];
+  songsSinceNews = st.dj.length ? 2 : 0;   // news early on, so the DJ is heard soon
+  for (const li of $("stations").children) li.classList.toggle("sel", li.station === st);
+  rangeSource.show = Boolean(st.range);
+  updateSignal();
+  playNext();
+}
+
+function stop() {
+  station = null;
+  queue = [];
+  if (audioEl) { audioEl.pause(); audioEl.removeAttribute("src"); }
+  if (noiseGain) noiseGain.gain.value = 0;
+  for (const li of $("stations").children) li.classList.remove("sel");
+  $("nowPlaying").textContent = "Radio off.";
+  $("subtitle").textContent = "";
+  $("onair").classList.remove("show");
+  rangeSource.show = false;
+  updateSignal();
+}
+
+// the "listener" is the ground point at the centre of the screen, or below the camera when looking at the sky
+let listener;
+function updateListener() {
+  const ray = viewer.camera.getPickRay(new Cesium.Cartesian2(scene.canvas.clientWidth / 2, scene.canvas.clientHeight / 2));
+  const hit = ray && globe.pick(ray, scene);
+  const c = hit ? Cesium.Cartographic.fromCartesian(hit) : viewer.camera.positionCartographic;
+  listener = Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, 0);
+}
+
+// signal strength from the listener to the transmitter (stations without a range reach everywhere)
+function strengthOf(st) {
+  if (!st.range) return 1;
+  const tx = Cesium.Cartesian3.fromDegrees(st.range.lon, st.range.lat, 0);
+  return Math.max(0, 1 - Cesium.Cartesian3.distance(listener, tx) / st.range.radius);
+}
+
+function updateSignal() {
+  updateListener();
+  for (const li of $("stations").children) li.classList.toggle("off", strengthOf(li.station) <= 0);
+  const k = station ? strengthOf(station) : 0;
+  const bars = station ? Math.ceil(k * 4) : 0;
+  [...$("bars").children].forEach((b, i) => b.classList.toggle("on", i < bars));
+  $("signalText").textContent = !station ? "" : k <= 0 ? "OUT OF RANGE" : station.range ? `${Math.round(k * 100)}%` : "STRONG";
+  if (!ctx || !station) return;
+  const stat = station.range ? station.range.static + (1 - k) ** 2 * 0.6 : 0;
+  musicGain.gain.setTargetAtTime(k <= 0 ? 0 : Math.min(1, 0.25 + k), ctx.currentTime, 0.2);
+  noiseGain.gain.setTargetAtTime(k <= 0 ? 0.35 : stat * 0.5, ctx.currentTime, 0.2);
+}
+viewer.camera.changed.addEventListener(updateSignal);
+
+const stationList = $("stations");
+for (const st of radio.stations) {
+  const li = document.createElement("li");
+  li.tabIndex = 0;
+  li.station = st;
+  const name = document.createElement("span");
+  name.textContent = st.name;
+  const kind = document.createElement("span");
+  kind.className = "kind";
+  kind.textContent = st.range ? "LOCAL" : st.dj.length ? "DJ" : "";
+  li.append(name, kind);
+  li.onclick = () => (station === st ? stop() : tune(st));
+  li.onkeydown = (ev) => { if (ev.key === "Enter") li.onclick(); };
+  stationList.append(li);
+}
+$("radioOff").onclick = stop;
+$("radioSkip").onclick = () => { if (station) playNext(); };
+$("volume").oninput = (ev) => { if (master) master.gain.value = Number(ev.target.value); };
+
+// transmitter range on the map (shown while a ranged station is tuned)
+const rangeSource = new Cesium.CustomDataSource("radio-range");
+for (const st of radio.stations.filter((x) => x.range)) {
+  const pos = Cesium.Cartesian3.fromDegrees(st.range.lon, st.range.lat);
+  rangeSource.entities.add({
+    position: pos,
+    ellipse: { semiMajorAxis: st.range.radius, semiMinorAxis: st.range.radius,
+      material: new Cesium.StripeMaterialProperty({ evenColor: AMBER.withAlpha(0.07), oddColor: AMBER.withAlpha(0.02),
+        repeat: 24 }), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND },
+  });
+  // ring at the edge of reception
+  const ring = [];
+  for (let i = 0; i <= 96; i++) {
+    const a = (i / 96) * 2 * Math.PI;
+    ring.push(st.range.lon + (st.range.radius * Math.cos(a)) / (111320 * Math.cos(Cesium.Math.toRadians(st.range.lat))),
+              st.range.lat + (st.range.radius * Math.sin(a)) / 111320);
+  }
+  rangeSource.entities.add({
+    polyline: { positions: Cesium.Cartesian3.fromDegreesArray(ring), width: 2, clampToGround: true,
+      material: new Cesium.PolylineDashMaterialProperty({ color: AMBER, dashLength: 16 }) },
+  });
+  rangeSource.entities.add({
+    position: pos,
+    point: { pixelSize: 11, color: AMBER, outlineColor: Cesium.Color.BLACK, outlineWidth: 2,
+      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+    label: { text: `▲ ${st.name.toUpperCase()}`, ...labelStyle, distanceDisplayCondition: undefined, translucencyByDistance: undefined },
+  });
+}
+rangeSource.show = false;
+viewer.dataSources.add(rangeSource);
+updateSignal();
+
+// Pip-Boy style oscilloscope
+const wave = $("wave");
+const wctx = wave.getContext("2d");
+let samples;
+function draw() {
+  requestAnimationFrame(draw);
+  if (!$("p-radio").classList.contains("active")) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = wave.clientWidth * dpr, H = wave.clientHeight * dpr;
+  if (wave.width !== W || wave.height !== H) { wave.width = W; wave.height = H; }
+  wctx.clearRect(0, 0, W, H);
+  wctx.strokeStyle = "#ffb642";
+  wctx.lineWidth = 2 * dpr;
+  wctx.shadowColor = "#ffb642";
+  wctx.shadowBlur = 8 * dpr;
+  wctx.beginPath();
+  if (analyser && station) {
+    samples ??= new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(samples);
+    const step = samples.length / W;
+    for (let x = 0; x < W; x++) {
+      const y = H / 2 - samples[Math.floor(x * step)] * H * 0.9;
+      x ? wctx.lineTo(x, y) : wctx.moveTo(x, y);
+    }
+  } else {
+    wctx.moveTo(0, H / 2);
+    wctx.lineTo(W, H / 2);
+  }
+  wctx.stroke();
+}
+draw();
+</script>
+</body>
+</html>

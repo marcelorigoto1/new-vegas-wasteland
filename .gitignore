@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+# scratch output of the extraction experiments and the raw GeoTIFFs
+build/
+out/
+vendor/
+# radio audio is copyrighted, licensed music: generate it locally with build_radio.py, never publish it
+site/radio/
+# work in progress, not published yet
+site/maps/freeside/
