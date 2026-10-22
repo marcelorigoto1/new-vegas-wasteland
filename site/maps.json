@@ -1,5 +1,6 @@
 [
- {"id": "mojave", "title": "Mojave Wasteland"},
- {"id": "strip", "title": "The Strip"},
- {"id": "freeside", "title": "Freeside"}
+ {"id": "mojave", "title": "Mojave Wasteland", "game": "fnv"},
+ {"id": "strip", "title": "The Strip", "game": "fnv"},
+ {"id": "freeside", "title": "Freeside", "game": "fnv"},
+ {"id": "skyrim", "title": "Skyrim", "game": "skyrim", "data": "https://marcelorigoto1.github.io/tes-skyrim/"}
 ]

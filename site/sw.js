@@ -15,8 +15,13 @@ self.addEventListener("activate", (event) => {
   })());
 });
 
+// map data published from separate repositories (maps.json "data"), served from the same github.io origin
+const DATA_REPOS = ["/tes-skyrim/"];
+
 function cacheable(url) {
-  if (url.origin === self.location.origin) return url.pathname.includes("/maps/");
+  if (url.origin === self.location.origin) {
+    return url.pathname.includes("/maps/") || DATA_REPOS.some((p) => url.pathname.startsWith(p));
+  }
   return url.hostname === "cdn.jsdelivr.net" && url.pathname.startsWith("/npm/cesium@");
 }
 

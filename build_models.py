@@ -15,7 +15,7 @@ from osgeo import gdal
 import fnv_terrain as ft
 from bsa import BSA
 from build_buildings import enu_frame, geodetic_to_ecef
-from build_cesium import Placement
+from build_cesium import GAMES as CESIUM_GAMES, Placement
 from lod_texture import read_dds
 from nif import Nif, extract_meshes
 
@@ -24,18 +24,55 @@ gdal.SetConfigOption("GDAL_PAM_ENABLED", "NO")
 
 UNIT_M = ft.UNIT_M
 FX = re.compile(r"(^|\\)fx[^\\]*$|^effects\\tests\\")   # particle / test effect meshes
-MINOR = re.compile(r"^(landscape|trees|clutter)\\")   # rocks, plants, roads, junk: smaller textures, game LODs
+MINOR = re.compile(r"^(landscape|trees|clutter|plants)\\")   # rocks, plants, roads, junk: smaller textures, game LODs
 PLACE = None                       # Placement, set in main()
-MODEL_TYPES = {b"STAT", b"MSTT", b"ACTI", b"DOOR", b"CONT", b"FURN", b"TACT", b"LIGH", b"TREE"}
+MODEL_TYPES = {b"STAT", b"MSTT", b"ACTI", b"DOOR", b"CONT", b"FURN", b"TACT", b"LIGH", b"TREE", b"FLOR"}
+# plugins (load order) and archives per game; Skyrim SE ships the DLC assets inside its main archives
+GAMES = {
+    "fnv": dict(plugins=["FalloutNV.esm"], meshes=["Fallout - Meshes.bsa", "Update.bsa"], skip=None,
+                textures=["Fallout - Textures.bsa", "Fallout - Textures2.bsa", "Update.bsa"], gain=1.0),
+    "skyrim": dict(plugins=["Skyrim.esm", "Update.esm", "Dawnguard.esm", "HearthFires.esm", "Dragonborn.esm"],
+                   meshes=["Skyrim - Meshes0.bsa", "Skyrim - Meshes1.bsa"],
+                   # editor markers, sky domes, critter spawners and fog/mist/spray effects
+                   skip=re.compile(r"^(markers|sky|critters|effects)\\"),
+                   textures=[f"Skyrim - Textures{i}.bsa" for i in range(9)],
+                   # Skyrim textures are dark and rely on strong in-game lighting
+                   gain=1.7),
+}
 Y_UP = np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]], float)   # (e,n,u) -> glTF (e,u,-n)
 
 
-def scan_esm(path, worlds):
-    """Collect base models, placed references in `worlds`, and door destinations for labels."""
+def load_order_remap(buf, plugin, order):
+    """FormID mapper from a plugin's own numbering (high byte = index in its master list, or itself
+    after the masters) to the load order `order` (lowercase plugin names)."""
+    _, size, flags, *_ = ft.REC.unpack_from(buf, 0)
+    masters = [ft.zstring(v).lower() for k, v in ft.subrecords(ft.record_data(buf, 24, size, flags)) if k == b"MAST"]
+    table = [order.index(m) if m in order else 0xFF for m in masters] + [order.index(plugin.lower())]
+    return lambda fid: (table[min(fid >> 24, len(masters))] << 24) | (fid & 0xFFFFFF)
+
+
+def scan_plugins(data, plugins, worlds):
+    """scan_esm over plugins in load order: later plugins override base records and references
+    (a deleted or disabled override removes the reference)."""
+    order = [p.lower() for p in plugins]
+    base, refs, dest_names = {}, collections.defaultdict(dict), {}
+    for p in plugins:
+        b, r, d = scan_esm(os.path.join(data, p), worlds, order)
+        base.update(b)
+        dest_names.update(d)
+        for w, items in r.items():
+            refs[w].update(items)
+    return base, {w: [v for v in items.values() if v is not None] for w, items in refs.items()}, dest_names
+
+
+def scan_esm(path, worlds, order=None):
+    """Collect base models, placed references in `worlds` ({ref formid: ref, or None when removed}) and
+    door destinations for labels. `order`: load order, to translate FormIDs (see scan_plugins)."""
     buf = memoryview(open(path, "rb").read())
+    remap = load_order_remap(buf, os.path.basename(path), order) if order else (lambda fid: fid)
     base = {}                    # formid -> (type, edid, model, full name)
     wnames = {}
-    refs = collections.defaultdict(list)   # world -> [(base, pos, rot, scale, xtel_dest)]
+    refs = collections.defaultdict(dict)   # world -> {ref formid: (base, pos, rot, scale, xtel_dest) | None}
     cell_names = {}              # cell formid -> FULL
     ref_cell = {}                # ref formid -> cell formid (only for door destinations)
     wanted_dest = set()
@@ -46,7 +83,7 @@ def scan_esm(path, worlds):
             typ = bytes(buf[pos:pos + 4])
             if typ == b"GRUP":
                 _, gsize, label, gtype, *_ = ft.GRP.unpack_from(buf, pos)
-                lab = struct.unpack("<I", label)[0]
+                lab = remap(struct.unpack("<I", label)[0])
                 if gtype == 1:
                     walk(pos + 24, pos + gsize, lab, None)
                 elif gtype in (6, 8, 9, 10):
@@ -56,6 +93,7 @@ def scan_esm(path, worlds):
                 pos += gsize
                 continue
             _, size, flags, formid, *_ = ft.REC.unpack_from(buf, pos)
+            formid = remap(formid)
             dpos = pos + 24
             if typ in MODEL_TYPES:
                 sub = dict(ft.subrecords(ft.record_data(buf, dpos, size, flags)))
@@ -73,15 +111,16 @@ def scan_esm(path, worlds):
             elif typ == b"REFR":
                 w = wnames.get(world) if world is not None else None
                 if w in worlds:
-                    sub = dict(ft.subrecords(ft.record_data(buf, dpos, size, flags)))
+                    sub = {} if flags & 0x20 else dict(ft.subrecords(ft.record_data(buf, dpos, size, flags)))
+                    refs[w][formid] = None          # deleted, disabled or a marker: also cancels earlier plugins
                     if b"NAME" in sub and b"DATA" in sub and not flags & 0x800 and b"XMRK" not in sub:
                         d = struct.unpack("<6f", sub[b"DATA"])
                         scale = struct.unpack("<f", sub[b"XSCL"])[0] if b"XSCL" in sub else 1.0
-                        dest = struct.unpack("<I", sub[b"XTEL"][:4])[0] if b"XTEL" in sub else None
+                        dest = remap(struct.unpack("<I", sub[b"XTEL"][:4])[0]) if b"XTEL" in sub else None
                         if dest:
                             wanted_dest.add(dest)
-                        refs[w].append((struct.unpack("<I", sub[b"NAME"])[0], np.array(d[:3]), np.array(d[3:]),
-                                        scale, dest))
+                        refs[w][formid] = (remap(struct.unpack("<I", sub[b"NAME"])[0]), np.array(d[:3]),
+                                           np.array(d[3:]), scale, dest)
                 elif cell is not None:
                     ref_cell[formid] = cell
             pos = dpos + size
@@ -106,6 +145,10 @@ def rotation(rx, ry, rz):
 
 def norm_texture(path):
     t = path.lower().replace("/", "\\").lstrip("\\")
+    # absolute build paths baked into some Skyrim meshes, e.g. skyrimhd\build\pc\data\textures\...
+    i = t.find("textures\\")
+    if i > 0:
+        t = t[i:]
     if t.startswith("data\\"):
         t = t[5:]
     return t if t.startswith("textures\\") else "textures\\" + t
@@ -337,7 +380,10 @@ class GltfBuilder:
                 + struct.pack("<I4s", len(self.bin), b"BIN\x00") + bytes(self.bin))
 
 
-def save_texture(rgba, path, max_size):
+def save_texture(rgba, path, max_size, gain=1.0):
+    if gain != 1.0:
+        rgba = rgba.copy()
+        rgba[..., :3] = np.clip(rgba[..., :3] * gain, 0, 255).astype(np.uint8)
     while max(rgba.shape[:2]) > max_size:
         h, w = rgba.shape[0] // 2 * 2, rgba.shape[1] // 2 * 2
         a = rgba[:h, :w].astype(np.uint16)
@@ -393,12 +439,15 @@ def main():
     global PLACE
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("data", help="game Data directory")
-    ap.add_argument("--plugin", default="FalloutNV.esm")
+    ap.add_argument("--game", choices=GAMES, default="fnv", help="defaults for plugins and archives")
+    ap.add_argument("--plugin", action="append", help="plugin(s) in load order (default: the game's masters)")
     ap.add_argument("--world", action="append", required=True,
                     help="worldspace editor ID; repeat to merge overlapping worldspaces")
     ap.add_argument("-o", "--out", required=True, help="output directory for the tileset")
-    ap.add_argument("--lat", type=float, default=36.17)
-    ap.add_argument("--lon", type=float, default=-115.14)
+    ap.add_argument("--lat", type=float, help="nominal latitude of the world origin (as build_cesium.py)")
+    ap.add_argument("--lon", type=float, help="nominal longitude of the world origin")
+    ap.add_argument("--cells", type=int, nargs=4, metavar=("X0", "Y0", "X1", "Y1"),
+                    help="only references in this range of cells (inclusive), for quick tests")
     ap.add_argument("--texture-size", type=int, default=512)
     ap.add_argument("--minor-texture-size", type=int, default=256,
                     help="maximum size of textures used only by landscape / tree / clutter models")
@@ -419,21 +468,27 @@ def main():
     ap.add_argument("--labels", help="write building-entrance labels to this JSON file")
     a = ap.parse_args()
 
-    PLACE = Placement(a.lat, a.lon)
+    g = GAMES[a.game]
+    place = CESIUM_GAMES[a.game]
+    PLACE = Placement(place["lat"] if a.lat is None else a.lat, place["lon"] if a.lon is None else a.lon)
     tile_units = a.tile_cells * ft.CELL_UNITS
-    base, refs, dest_names = scan_esm(os.path.join(a.data, a.plugin), set(a.world))
-    meshes = Archives(a.data, ["Fallout - Meshes.bsa", "Update.bsa"])
-    textures = Archives(a.data, ["Fallout - Textures.bsa", "Fallout - Textures2.bsa", "Update.bsa"])
+    base, refs, dest_names = scan_plugins(a.data, a.plugin or g["plugins"], set(a.world))
+    meshes = Archives(a.data, g["meshes"])
+    textures = Archives(a.data, g["textures"])
 
     # merge worldspaces, dropping near-identical duplicates of the same model
     placed, seen, bnams = [], set(), {}
     for w in a.world:
-        for b, pos, rot, scale, dest in refs[w]:
+        for b, pos, rot, scale, dest in refs.get(w, []):
             if b not in base:
                 continue
+            if a.cells:
+                cx, cy = pos[0] // ft.CELL_UNITS, pos[1] // ft.CELL_UNITS
+                if not (a.cells[0] <= cx <= a.cells[2] and a.cells[1] <= cy <= a.cells[3]):
+                    continue
             typ, edid, model, full, bnam = base[b]
             model = model.lower().lstrip("\\")
-            if "marker" in model or edid.lower().endswith("marker") or FX.search(model):
+            if "marker" in model or edid.lower().endswith("marker") or FX.search(model) or (g["skip"] and g["skip"].match(model)):
                 continue
             if model.endswith(".spt"):
                 if not bnam:
@@ -461,7 +516,13 @@ def main():
             prims = billboard_prims(model, bnams[model])
         else:
             data = meshes.read("meshes\\" + model)
-            prims = extract_meshes(Nif(data)) if data else []
+            try:
+                prims = extract_meshes(Nif(data)) if data else []
+            except (ValueError, IndexError, struct.error) as e:
+                print(f"skipped {model}: {e}")
+                prims = []
+        if not prims:
+            continue
         if all(p["material"]["alpha_mode"] == "BLEND" for p in prims):
             continue                      # glow domes, light beams, smoke cards: effect-only meshes
         add_model(model, prims)
@@ -469,7 +530,8 @@ def main():
             continue
         # mid-distance version: the game's own reduced mesh (e.g. 4900 -> 150 triangles for a cliff),
         # otherwise our own simplification
-        data = meshes.read("meshes\\" + model[:-4] + "_lod.nif")
+        # (Skyrim trees ship a crossed-quad "_lod_flat" version beside the full model)
+        data = meshes.read("meshes\\" + model[:-4] + "_lod.nif") or meshes.read("meshes\\" + model[:-4] + "_lod_flat.nif")
         lod = extract_meshes(Nif(data)) if data else []
         if lod:
             game_lod.add(model)
@@ -504,7 +566,7 @@ def main():
             rgba = np.concatenate([rgba, np.full(rgba.shape[:2] + (1,), 255, np.uint8)], axis=2)
         name = re.sub(r"[^a-z0-9]+", "_", t[len("textures\\"):-4]) + (".png" if alpha else ".jpg")
         save_texture(rgba, os.path.join(a.out, "textures", name),
-                     a.texture_size if t in tex_major else a.minor_texture_size)
+                     a.texture_size if t in tex_major else a.minor_texture_size, g["gain"])
         tex_uri[t] = "textures/" + name
     print(f"textures: {len(tex_uri)}")
 

@@ -1,4 +1,4 @@
-"""Build a static CesiumJS site for a Fallout 3 / New Vegas worldspace:
+"""Build a static CesiumJS site for a Fallout 3 / New Vegas or Skyrim SE worldspace:
 terrain tiles (Cesium heightmap-1.0), imagery tiles (game LOD textures shaded with the DEM)
 and map markers. Serve the output directory with any static web server.
 """
@@ -11,7 +11,8 @@ from types import SimpleNamespace
 import numpy as np
 from osgeo import gdal
 
-from fnv_terrain import CELL_UNITS, STEP, UNIT_M, mosaic, parse_worlds
+from bsa import BSA
+from fnv_terrain import CELL_UNITS, STEP, UNIT_M, load_strings, mosaic, parse_worlds
 from lod_texture import lod_mosaic
 
 gdal.UseExceptions()
@@ -25,6 +26,63 @@ WATER_RGB = np.array([44, 74, 80], np.float32)
 MARKER_TYPES = ["None", "City", "Settlement", "Encampment", "Natural landmark", "Cave", "Factory",
                 "Monument", "Military", "Office", "Town ruins", "Urban ruins", "Sewer ruins",
                 "Metro", "Vault"]
+SKYRIM_MARKER_TYPES = [
+    "None", "City", "Town", "Settlement", "Cave", "Camp", "Fort", "Nordic ruins", "Dwemer ruins",
+    "Shipwreck", "Grove", "Landmark", "Dragon lair", "Farm", "Wood mill", "Mine", "Imperial camp",
+    "Stormcloak camp", "Standing stone", "Wheat mill", "Smelter", "Stable", "Imperial tower", "Clearing",
+    "Pass", "Shrine", "Rock", "Lighthouse", "Orc stronghold", "Giant camp", "Shack", "Nordic tower",
+    "Nordic dwelling", "Docks", "Daedric shrine"] + ["Palace", "City"] * 9 + [   # 35..52: the nine holds
+    "Temple", "City", "Standing stone", "Tower", "Docks", "Docks"]                 # Dragonborn
+# Skyrim marker type -> symbol of interface\map.swf (build_icons.py --game skyrim writes icons/skyrim/<slug>.svg)
+SKYRIM_ICONS = [
+    None, "city", "town", "settlement", "cave", "camp", "fort", "nordic_ruin", "dwemer", "shipwreck", "grove",
+    "landmark", "dragonlair", "farm", "wood_mill", "mine", "imperial_camp", "stormcloak_camp", "doomstone",
+    "wheat_mill", "smelter", "stable", "imperial_tower", "clearing", "pass", "altar", "rock", "lighthouse",
+    "orc_stronghold", "giant_camp", "shack", "nordic_tower", "nordic_dwelling", "docks", "shrine"] + [
+    f"{hold}_{kind}" for hold in ("riften", "windhelm", "whiterun", "solitude", "markarth", "winterhold",
+                                  "morthal", "falkreath", "dawnstar") for kind in ("castle", "capitol")] + [
+    "miraak_temple", "raven_rock", "standing_stones", "telvanni_tower", "to_skyrim", "to_solstheim"]
+# per-game defaults: plugins in load order (later ones override terrain), LOD texture archives
+GAMES = {
+    "fnv": dict(plugins=["FalloutNV.esm"], textures=["Fallout - Textures2.bsa"], strings=None,
+                markers=MARKER_TYPES, icons=None, lod_rotated=True, lat=36.17, lon=-115.14, children={}),
+    "skyrim": dict(plugins=["Skyrim.esm", "Update.esm", "Dawnguard.esm", "HearthFires.esm", "Dragonborn.esm"],
+                   textures=["Skyrim - Textures6.bsa", "Skyrim - Textures7.bsa"],
+                   strings="Skyrim - Interface.bsa", markers=SKYRIM_MARKER_TYPES, icons=SKYRIM_ICONS, lod_rotated=False,
+                   lat=61.5, lon=8.5,
+                   # walled cities are child worldspaces in Tamriel's coordinates, holding their own markers
+                   children={"Tamriel": ["WhiterunWorld", "SolitudeWorld", "WindhelmWorld", "RiftenWorld",
+                                         "MarkarthWorld"]}),
+}
+
+
+def load_plugins(data, plugins, strings_bsa):
+    """Parse plugins in load order and merge heightmaps, markers and water levels per worldspace.
+    Localized plugins (Skyrim) take their names from strings\\<plugin>_english.strings."""
+    strings = BSA(os.path.join(data, strings_bsa)) if strings_bsa else None
+    lands, markers, waters = {}, {}, {}
+    for p in plugins:
+        table = None
+        if strings is not None:
+            key = f"strings\\{os.path.splitext(p)[0].lower()}_english.strings"
+            table = load_strings(strings.read(key)) if key in strings.files else {}
+        m, w = {}, {}
+        for world, cells in parse_worlds(os.path.join(data, p), m, w, table).items():
+            lands.setdefault(world, {}).update(cells)
+        for world, marks in m.items():
+            # a plugin that overrides a marker repeats it: keep the last version at each spot
+            seen = {(round(x / 256), round(y / 256)): i for i, (_, x, y, _, _) in enumerate(markers.get(world, []))}
+            have = markers.setdefault(world, [])
+            for mk in marks:
+                i = seen.get((round(mk[1] / 256), round(mk[2] / 256)))
+                if i is None:
+                    have.append(mk)
+                else:
+                    have[i] = mk
+        for world, (default, cells) in w.items():
+            d0, c0 = waters.get(world, (default, {}))
+            waters[world] = (d0, {**c0, **cells})
+    return lands, markers, waters
 
 
 class Placement:
@@ -176,24 +234,28 @@ def build_imagery(tex, shade, water, place, rect, out, max_level):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("data", help="game Data directory")
-    ap.add_argument("--plugin", default="FalloutNV.esm")
-    ap.add_argument("--textures", default="Fallout - Textures2.bsa")
+    ap.add_argument("--game", choices=GAMES, default="fnv", help="defaults for plugins, archives and marker types")
+    ap.add_argument("--plugin", action="append", help="plugin(s) in load order (default: the game's masters)")
+    ap.add_argument("--textures", action="append", help="archive(s) holding the terrain LOD textures")
     ap.add_argument("--world", default="WastelandNV")
     ap.add_argument("-o", "--out", default="site")
-    ap.add_argument("--lat", type=float, default=36.17)
-    ap.add_argument("--lon", type=float, default=-115.14)
+    ap.add_argument("--lat", type=float, help="nominal latitude of the world origin")
+    ap.add_argument("--lon", type=float, help="nominal longitude of the world origin")
     ap.add_argument("--terrain-level", type=int, default=17)
     ap.add_argument("--imagery-level", type=int, default=16)
     ap.add_argument("--title", help="display name of the map")
+    ap.add_argument("--skip-tiles", action="store_true", help="only rewrite world.json (markers, metadata)")
     ap.add_argument("--no-water", action="store_true", help="ignore water levels (e.g. city worldspaces)")
     ap.add_argument("--extra-markers", help="JSON list of additional labels (e.g. from build_models.py)")
     ap.add_argument("--tileset", action="append", default=[], metavar="NAME=URL",
                     help="3D Tiles layer to show on this map, URL relative to the map directory")
     a = ap.parse_args()
+    g = GAMES[a.game]
+    types = g["markers"]
 
-    place = Placement(a.lat, a.lon)
-    markers, waters = {}, {}
-    cellmap = parse_worlds(os.path.join(a.data, a.plugin), markers, waters)[a.world]
+    place = Placement(g["lat"] if a.lat is None else a.lat, g["lon"] if a.lon is None else a.lon)
+    lands, markers, waters = load_plugins(a.data, a.plugin or g["plugins"], g["strings"])
+    cellmap = lands[a.world]
     grid, x0, ytop = mosaic(cellmap)
     grid = np.where(np.isnan(grid), np.nanmedian(grid), grid) * UNIT_M
     vpx = CELL_UNITS / STEP * UNIT_M                       # metres between DEM vertices
@@ -215,7 +277,14 @@ def main():
     dem = Grid(grid, x0 * CELL_UNITS * UNIT_M, (ytop + 1) * CELL_UNITS * UNIT_M, vpx, 8)
     water = SimpleNamespace(grid=Grid(wet.astype(np.float32), dem.left, dem.top, vpx, 8), place=place)
 
-    rgb, tx0, ty0, ppc = lod_mosaic(os.path.join(a.data, a.textures), a.world)
+    rgb, tx0, ty0, ppc = lod_mosaic([os.path.join(a.data, t) for t in a.textures or g["textures"]], a.world,
+                                    rotated=g["lod_rotated"])
+    # crop the LOD mosaic to the cells with terrain (Skyrim's LOD grid extends far past them)
+    ncy, ncx = rgb.shape[0] // ppc, rgb.shape[1] // ppc
+    cx0, cx1 = max(tx0, x0), min(tx0 + ncx, x0 + (grid.shape[1] - 1) // STEP)
+    cy0, cy1 = max(ty0, ytop + 1 - (grid.shape[0] - 1) // STEP), min(ty0 + ncy, ytop + 1)
+    rgb = rgb[(ty0 + ncy - cy1) * ppc:(ty0 + ncy - cy0) * ppc, (cx0 - tx0) * ppc:(cx1 - tx0) * ppc]
+    tx0, ty0 = cx0, cy0
     tpx = CELL_UNITS * UNIT_M / ppc
     ncy, ncx = rgb.shape[0] // ppc, rgb.shape[1] // ppc
     tex = Grid(rgb, tx0 * CELL_UNITS * UNIT_M + tpx / 2, (ty0 + ncy) * CELL_UNITS * UNIT_M - tpx / 2, tpx, 8)
@@ -235,18 +304,27 @@ def main():
     rect = (float(w), float(s), float(e), float(n))
 
     os.makedirs(a.out, exist_ok=True)
-    nt = build_terrain(dem, water, place, rect, os.path.join(a.out, "terrain"), a.terrain_level)
-    print(f"terrain tiles: {nt}")
-    ni = build_imagery(tex, shade, water, place, rect, os.path.join(a.out, "imagery"), a.imagery_level)
-    print(f"imagery tiles: {ni}")
+    if not a.skip_tiles:
+        nt = build_terrain(dem, water, place, rect, os.path.join(a.out, "terrain"), a.terrain_level)
+        print(f"terrain tiles: {nt}")
+        ni = build_imagery(tex, shade, water, place, rect, os.path.join(a.out, "imagery"), a.imagery_level)
+        print(f"imagery tiles: {ni}")
 
     marks = []
-    for name, x, y, z, t in markers.get(a.world, []):
+    seen = {}
+    for name, x, y, z, t in sum((markers.get(wn, []) for wn in [a.world] + g["children"].get(a.world, [])), []):
+        # Skyrim's civil-war camps come in pairs (Imperial / Stormcloak) at the same spot: keep one
+        if any(math.hypot(x - px, y - py) < 2048 for px, py in seen.get(name, [])):
+            continue
+        seen.setdefault(name, []).append((x, y))
         lon, lat = place.to_lonlat(x * UNIT_M, y * UNIT_M)
         if w <= lon <= e and s <= lat <= n:
             marks.append({"name": name, "lon": round(float(lon), 7), "lat": round(float(lat), 7),
                           "height": round(z * UNIT_M, 1),
-                          "type": MARKER_TYPES[t] if t < len(MARKER_TYPES) else str(t)})
+                          "type": types[t & 0xFF] if (t & 0xFF) < len(types) else str(t)})
+            icons = g["icons"]
+            if icons and (t & 0xFF) < len(icons) and icons[t & 0xFF]:
+                marks[-1]["icon"] = f"skyrim/{icons[t & 0xFF]}.svg"
     if a.extra_markers:
         with open(a.extra_markers, encoding="utf-8") as f:
             marks += json.load(f)

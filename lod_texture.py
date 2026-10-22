@@ -107,25 +107,36 @@ def read_dds(data):
     return decode_uncompressed(data[128:], width, height, bits, (r, g, b, a))
 
 
-def lod_mosaic(bsa_path, world, level=4):
+def lod_mosaic(bsa_paths, world, level=4, rotated=True):
     """Return (rgb, x0, y0, cells_per_px) where rgb row 0 is the north edge of cell row y0+ny-1
-    and (x0, y0) is the south-west cell of the mosaic."""
-    b = BSA(bsa_path)
-    pat = re.compile(rf"textures\\landscape\\lod\\{world.lower()}\\diffuse\\{world.lower()}"
-                     rf"\.n\.level{level}\.x(-?\d+)\.y(-?\d+)\.dds$")
+    and (x0, y0) is the south-west cell of the mosaic.
+
+    Reads FO3/FNV tiles (textures\\landscape\\lod\\<w>\\diffuse\\<w>.n.level4.x0.y0.dds) and Skyrim
+    tiles (textures\\terrain\\<w>\\<w>.4.0.0.dds) from one or more archives. `rotated`: the tiles are
+    stored rotated 180 degrees (FNV)."""
+    if isinstance(bsa_paths, str):
+        bsa_paths = [bsa_paths]
+    w = re.escape(world.lower())
+    pat = re.compile(rf"textures\\(?:landscape\\lod\\{w}\\diffuse\\{w}\.n\.level{level}|terrain\\{w}\\{w}\.{level})"
+                     rf"\.x?(-?\d+)\.y?(-?\d+)\.dds$")
     tiles = {}
-    for k in b.files:
-        m = pat.match(k)
-        if m:
-            tiles[(int(m.group(1)), int(m.group(2)))] = k
+    for path in bsa_paths:
+        b = BSA(path)
+        for k in b.files:
+            m = pat.match(k)
+            if m:
+                tiles[(int(m.group(1)), int(m.group(2)))] = (b, k)
     xs = [t[0] for t in tiles]
     ys = [t[1] for t in tiles]
     x0, y0, x1, y1 = min(xs), min(ys), max(xs) + level, max(ys) + level
-    size = read_dds(b.read(next(iter(tiles.values())))).shape[0]
+    b, k = next(iter(tiles.values()))
+    size = read_dds(b.read(k)).shape[0]
     ppc = size // level                                     # pixels per cell
     out = np.zeros(((y1 - y0) * ppc, (x1 - x0) * ppc, 3), np.uint8)
-    for (x, y), k in tiles.items():
-        img = read_dds(b.read(k))[::-1, ::-1]   # LOD tiles are stored rotated 180 degrees
+    for (x, y), (b, k) in tiles.items():
+        img = read_dds(b.read(k))[..., :3]
+        if rotated:
+            img = img[::-1, ::-1]
         r = (y1 - (y + level)) * ppc
         c = (x - x0) * ppc
         out[r:r + size, c:c + size] = img

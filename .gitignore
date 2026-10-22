@@ -8,3 +8,6 @@ vendor/
 site/radio/
 # work in progress, not published yet
 site/maps/freeside/
+# Skyrim's data is its own repository (github.com/marcelorigoto1/tes-skyrim), published separately because
+# the GitHub Pages size limit (1 GB) does not fit every map in one site
+site/maps/skyrim/

@@ -1,5 +1,6 @@
-"""Minimal NIF (Gamebryo 20.2.0.7, Fallout 3 / New Vegas) reader: header, block table and
-the geometry blocks needed to export static meshes."""
+"""Minimal NIF reader: header, block table and the geometry blocks needed to export static meshes.
+Gamebryo 20.2.0.7 as used by Fallout 3 / New Vegas (NiTriShape, NiTriStrips) and Skyrim Special Edition
+(BSTriShape with packed vertex data, BS version 100)."""
 import struct
 
 import numpy as np
@@ -213,6 +214,143 @@ def _material(nif, prop_refs):
     return m
 
 
+# ---------- Skyrim Special Edition (BS version 100): BSTriShape with packed vertices ----------
+SSE_SHAPE_TYPES = {"BSTriShape", "BSMeshLODTriShape", "BSLODTriShape", "BSSubIndexTriShape"}
+EFFECT_SHADERS = {"BSEffectShaderProperty", "BSSkyShaderProperty"}
+SKIP_SHADERS = {"BSWaterShaderProperty"}          # water planes are drawn by the terrain
+
+
+def decode_vertices(r, desc, nv, stride, bs_version):
+    """Packed BSVertexData: positions, half-float UVs, byte normals, byte colours."""
+    flags = desc >> 44
+    raw = r.array("u1", nv * stride).reshape(nv, stride)
+    out = {}
+    if flags & 0x400 or bs_version < 130:  # Skyrim SE positions are always full precision
+        out["positions"] = raw[:, 0:12].copy().view("<f4").reshape(nv, 3)
+    else:
+        out["positions"] = raw[:, 0:6].copy().view("<f2").reshape(nv, 3).astype(np.float32)
+    if flags & 0x2:
+        o = ((desc >> 8) & 0xF) * 4
+        out["uvs"] = raw[:, o:o + 4].copy().view("<f2").reshape(nv, 2).astype(np.float32)
+    if flags & 0x8:
+        o = ((desc >> 16) & 0xF) * 4
+        out["normals"] = raw[:, o:o + 3].astype(np.float32) / 127.5 - 1
+    if flags & 0x20:
+        o = ((desc >> 24) & 0xF) * 4
+        out["colors"] = raw[:, o:o + 4].astype(np.float32) / 255
+    return out
+
+
+def read_skin_partition_sse(nif, skin):
+    """Geometry of a skinned Skyrim SE shape (e.g. trees): the vertex buffer and the triangles of all
+    partitions, which live in the NiSkinPartition referenced by the skin instance. Bind pose."""
+    if not 0 <= skin < len(nif.blocks) or nif.blocks[skin][0] not in ("NiSkinInstance", "BSDismemberSkinInstance"):
+        return None
+    sr = nif.reader(skin)
+    sr.i32()                              # skin data
+    part = sr.i32()
+    if not 0 <= part < len(nif.blocks) or nif.blocks[part][0] != "NiSkinPartition":
+        return None
+    r = nif.reader(part)
+    nparts = r.u32()
+    size, vsize = r.u32(), r.u32()
+    desc = r.unpack("Q")[0]
+    if not size or not vsize:
+        return None
+    out = decode_vertices(r, desc, size // vsize, vsize, nif.bs_version)
+    tris = []
+    for _ in range(nparts):
+        nv, ntri, nbones, nstrips, nweights = r.unpack("5H")
+        r.array("<u2", nbones)
+        if r.u8():
+            r.array("<u2", nv)            # vertex map
+        if r.u8():
+            r.array("<f4", nv * nweights)
+        lengths = r.array("<u2", nstrips)
+        if r.u8():
+            if nstrips:
+                for n in lengths:
+                    r.array("<u2", n)
+            else:
+                r.array("<u2", ntri * 3)  # partition triangles
+        if r.u8():
+            r.array("u1", nv * nweights)  # bone indices
+        r.u8(); r.u8()                    # LOD level, global VB
+        r.unpack("Q")                     # vertex desc
+        # the copy indexes the shared vertex buffer above
+        tris.append(r.array("<u2", ntri * 3).reshape(ntri, 3))
+    if not tris:
+        return None
+    out["triangles"] = np.concatenate(tris)
+    return out
+
+
+def read_bs_tri_shape(r, t, nif):
+    """BSTriShape geometry after the NiAVObject fields: (shader ref, alpha ref, data dict) or None."""
+    r.unpack("4f")                        # bounding sphere
+    skin, shader, alpha = r.i32(), r.i32(), r.i32()
+    desc = r.unpack("Q")[0]
+    ntri, nv, size = r.u16(), r.u16(), r.u32()
+    if skin != -1:
+        out = read_skin_partition_sse(nif, skin)
+        return (shader, alpha, out) if out else None
+    if size == 0:
+        return None
+    out = decode_vertices(r, desc, nv, (desc & 0xF) * 4, nif.bs_version)
+    tris = r.array("<u2", ntri * 3).reshape(ntri, 3)
+    if t in ("BSMeshLODTriShape", "BSLODTriShape"):
+        r.array("u1", r.u32())            # particle data size (SSE), normally 0
+        lod0 = r.u32()                    # triangles of the most detailed level come first
+        tris = tris[:lod0] if lod0 else tris
+    out["triangles"] = tris
+    return shader, alpha, out
+
+
+def _material_sse(nif, shader, alpha):
+    """Material of a Skyrim SE shape, or None for shapes not to draw (water)."""
+    m = {"texture": None, "alpha_mode": "OPAQUE", "cutoff": 0.5, "alpha": 1.0, "unlit": False,
+         "vertex_colors": False, "uv": None}
+    if 0 <= shader < len(nif.blocks):
+        t = nif.blocks[shader][0]
+        r = nif.reader(shader)
+        if t in SKIP_SHADERS:
+            return None
+        if t == "BSLightingShaderProperty":
+            r.u32()                       # shader type (precedes the name in Skyrim)
+            read_object_net(r)
+            _, flags2 = r.u32(), r.u32()
+            offset, scale = r.unpack("2f"), r.unpack("2f")
+            ts = r.i32()
+            r.unpack("4f")                # emissive colour, multiple
+            r.u32()                       # texture clamp mode
+            m["alpha"] = r.f32()
+            m["vertex_colors"] = bool(flags2 & 0x20)
+            if offset != (0, 0) or scale != (1, 1):
+                m["uv"] = (offset, scale)
+            if 0 <= ts < len(nif.blocks) and nif.blocks[ts][0] == "BSShaderTextureSet":
+                tr = nif.reader(ts)
+                names = [tr.sized_string() for _ in range(tr.i32())]
+                m["texture"] = names[0] if names and names[0] else None
+        elif t in EFFECT_SHADERS:
+            read_object_net(r)
+            r.unpack("2I")                # flags
+            r.unpack("4f")                # uv offset, scale
+            m["texture"] = r.sized_string() or None
+            m["alpha_mode"], m["unlit"] = "BLEND", True
+    if 0 <= alpha < len(nif.blocks) and nif.blocks[alpha][0] == "NiAlphaProperty":
+        r = nif.reader(alpha)
+        read_object_net(r)
+        flags = r.u16()
+        threshold = r.u8()
+        if flags & 0x200:
+            m["alpha_mode"], m["cutoff"] = "MASK", max(threshold, 1) / 255.0
+        elif flags & 1:
+            m["alpha_mode"] = "BLEND"
+    if m["alpha"] < 1 and m["alpha_mode"] == "OPAQUE":
+        m["alpha_mode"] = "BLEND"
+    return m
+
+
 def extract_meshes(nif):
     """Flatten a NIF scene into primitives in model space (game units).
 
@@ -225,13 +363,14 @@ def extract_meshes(nif):
             return
         seen.add(i)
         t = nif.blocks[i][0]
-        if t not in NODE_TYPES and t not in SHAPE_TYPES:
+        sse = nif.bs_version > 34         # Skyrim: no property list, shader and alpha refs on the shape
+        if t not in NODE_TYPES and t not in (SSE_SHAPE_TYPES if sse else SHAPE_TYPES):
             return
         r = nif.reader(i)
         name, flags, tr, rot, scale = read_av_object_flags(r, nif.bs_version)
         if flags & 1 or "editormarker" in nif.string(name).lower():
             return                        # hidden or editor-only
-        props = list(r.array("<i4", r.u32()))
+        props = [] if sse else list(r.array("<i4", r.u32()))
         r.i32()                           # collision object
         # Gamebryo uses row vectors: v' = v * (s R) + t, i.e. column form s R^T v + t
         local = np.eye(4)
@@ -245,21 +384,37 @@ def extract_meshes(nif):
             for c in children:
                 visit(c, world)
             return
-        data = r.i32()
-        if not 0 <= data < len(nif.blocks):
-            return
-        dt = nif.blocks[data][0]
-        if dt == "NiTriShapeData":
-            g = read_tri_shape_data(nif.reader(data))
-        elif dt == "NiTriStripsData":
-            g = read_tri_strips_data(nif.reader(data))
+        if sse:
+            shape = read_bs_tri_shape(r, t, nif)
+            if shape is None:
+                return
+            shader, alpha, g = shape
+            material = _material_sse(nif, shader, alpha)
+            if material is None:
+                return
+            if "colors" in g and not material["vertex_colors"]:
+                del g["colors"]           # colours present but not used by the shader
+            elif "colors" in g:
+                g["colors"][:, 3] = 1     # vertex alpha holds wind / animation weights, not opacity
+            if "uvs" in g and material["uv"]:
+                (ou, ov), (su, sv) = material["uv"]
+                g["uvs"] = g["uvs"] * np.array([su, sv], np.float32) + np.array([ou, ov], np.float32)
         else:
-            return
+            data = r.i32()
+            if not 0 <= data < len(nif.blocks):
+                return
+            dt = nif.blocks[data][0]
+            if dt == "NiTriShapeData":
+                g = read_tri_shape_data(nif.reader(data))
+            elif dt == "NiTriStripsData":
+                g = read_tri_strips_data(nif.reader(data))
+            else:
+                return
+            material = _material(nif, props)
         if "positions" not in g or "triangles" not in g or len(g["triangles"]) == 0:
             return
         pos = g["positions"].astype(np.float64) @ world[:3, :3].T + world[:3, 3]
-        prim = {"positions": pos, "triangles": g["triangles"].astype(np.uint32),
-                "material": _material(nif, props)}
+        prim = {"positions": pos, "triangles": g["triangles"].astype(np.uint32), "material": material}
         if "normals" in g:
             n = g["normals"] @ world[:3, :3].T
             prim["normals"] = n / np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-9)

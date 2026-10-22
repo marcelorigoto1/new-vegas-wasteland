@@ -1,10 +1,11 @@
-"""Extract worldspace terrain heightmaps from Fallout 3 / New Vegas plugins (.esm/.esp)
+"""Extract worldspace terrain heightmaps from Fallout 3 / New Vegas / Skyrim SE plugins (.esm/.esp)
 and write them as GeoTIFF DEMs readable by GIS software.
 
 Format notes (TES4-family records as used by FO3/FNV):
   record header: type[4] size:u32 flags:u32 formid:u32 vc:u32 ver:u16 unk:u16  (24 bytes)
   group header:  'GRUP' size:u32(incl. header) label[4] gtype:i32 stamp:u16 unk:u16 ver:u16 unk:u16
   compressed record (flags & 0x40000): u32 decompressed size + zlib stream
+  localized plugin (TES4 flags & 0x80, Skyrim): FULL holds a u32 id into the .STRINGS table
   CELL.XCLC: i32 grid x, i32 grid y
   LAND.VHGT: f32 offset, 33x33 i8 deltas, 3 pad bytes; heights in units of 8 game units
 A cell spans 4096 game units; 1 game unit = 1/64 yard = 0.0142875 m.
@@ -56,7 +57,7 @@ def record_data(buf, pos, size, flags):
 
 
 def zstring(data):
-    return bytes(data).split(b"\x00", 1)[0].decode("cp1252")
+    return bytes(data).split(b"\x00", 1)[0].decode("cp1252", "replace")
 
 
 def decode_vhgt(v):
@@ -68,13 +69,26 @@ def decode_vhgt(v):
     return h * 8.0  # rows = south->north, cols = west->east
 
 
-def parse_worlds(path, markers=None, water=None):
+def load_strings(data):
+    """Parse a Skyrim .STRINGS table into {id: text}."""
+    count, _ = struct.unpack_from("<II", data, 0)
+    base = 8 + 8 * count
+    out = {}
+    for i in range(count):
+        sid, off = struct.unpack_from("<II", data, 8 + 8 * i)
+        end = data.index(b"\x00", base + off)
+        out[sid] = data[base + off:end].decode("utf-8", "replace")
+    return out
+
+
+def parse_worlds(path, markers=None, water=None, strings=None):
     """Return {world_editor_id: {(x, y): heights33x33}}.
 
     If a dict is passed as `markers`, it is filled with
     {world_editor_id: [(name, x, y, z, marker_type), ...]} from map-marker references.
     If a dict is passed as `water`, it is filled with
-    {world_editor_id: (default_level, {(x, y): level})} in game units (WRLD.NAM4 / CELL.XCLW)."""
+    {world_editor_id: (default_level, {(x, y): level})} in game units (WRLD.NAM4 / CELL.XCLW).
+    For localized plugins, `strings` maps FULL ids to names (see load_strings)."""
     buf = memoryview(open(path, "rb").read())
     worlds = {}           # formid -> edid
     cells = {}            # cell formid -> (world formid, x, y)
@@ -82,6 +96,7 @@ def parse_worlds(path, markers=None, water=None):
     marks = {}            # world formid -> [(name, x, y, z, type)]
     default_water = {}    # world formid -> level
     cell_water = {}       # world formid -> {(x,y): level}
+    localized = bool(REC.unpack_from(buf, 0)[2] & 0x80) and strings is not None
 
     def walk(start, end, world, cell):
         pos = start
@@ -110,14 +125,19 @@ def parse_worlds(path, markers=None, water=None):
                         worlds[formid] = zstring(sd)
                     elif st == b"NAM4":
                         default_water[formid] = struct.unpack_from("<f", sd, 0)[0]
+                    elif st == b"DNAM" and len(sd) == 8:
+                        # Skyrim: default land height, default water height (NAM4 wins if present)
+                        default_water.setdefault(formid, struct.unpack_from("<f", sd, 4)[0])
             elif typ == b"CELL" and world is not None:
                 sub = dict(subrecords(record_data(buf, dpos, size, flags)))
                 if b"XCLC" in sub:
                     x, y = struct.unpack_from("<ii", sub[b"XCLC"], 0)
                     cells[formid] = (world, x, y)
-                    # XCLW of FLT_MAX means "use the worldspace default"
-                    if b"XCLW" in sub and struct.unpack_from("<f", sub[b"XCLW"], 0)[0] < 1e30:
-                        cell_water.setdefault(world, {})[(x, y)] = struct.unpack_from("<f", sub[b"XCLW"], 0)[0]
+                    # XCLW of FLT_MAX means "use the worldspace default" (Skyrim also writes 4294953216);
+                    # huge negative values (-FLT_MAX, -2^31) mean no water
+                    lvl = struct.unpack_from("<f", sub[b"XCLW"], 0)[0] if b"XCLW" in sub else 1e38
+                    if lvl < 1e7:
+                        cell_water.setdefault(world, {})[(x, y)] = lvl
             elif typ == b"LAND" and cell in cells:
                 w, x, y = cells[cell]
                 for st, sd in subrecords(record_data(buf, dpos, size, flags)):
@@ -129,7 +149,9 @@ def parse_worlds(path, markers=None, water=None):
                 if b"XMRK" in sub and b"FULL" in sub and b"DATA" in sub:
                     px, py, pz = struct.unpack_from("<3f", sub[b"DATA"], 0)
                     mtype = struct.unpack_from("<H", sub[b"TNAM"], 0)[0] if b"TNAM" in sub else 0
-                    marks.setdefault(world, []).append((zstring(sub[b"FULL"]), px, py, pz, mtype))
+                    full = sub[b"FULL"]
+                    name = strings.get(struct.unpack_from("<I", full, 0)[0], "") if localized else zstring(full)
+                    marks.setdefault(world, []).append((name, px, py, pz, mtype))
             pos = dpos + size
 
     walk(0, len(buf), None, None)

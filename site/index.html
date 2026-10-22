@@ -6,23 +6,67 @@
 <title>Pip-Boy 3000 · Maps</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cinzel:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.143.0/Build/Cesium/Widgets/widgets.css">
 <script src="https://cdn.jsdelivr.net/npm/cesium@1.143.0/Build/Cesium/Cesium.js"></script>
 <style>
   :root {
-    --amber: #ffb642;
-    --amber-hi: #ffd27a;
-    --amber-dim: #b07a24;
-    --amber-faint: rgba(255, 182, 66, 0.14);
-    --amber-line: rgba(255, 182, 66, 0.45);
+    --fg: #ffb642;
+    --hi: #ffd27a;
+    --dim: #b07a24;
+    --faint: rgba(255, 182, 66, 0.14);
+    --line: rgba(255, 182, 66, 0.45);
     --bg: #080602;
     --panel: rgba(14, 10, 3, 0.9);
     --glow: 0 0 6px rgba(255, 182, 66, 0.55);
+    --on-fg: #120c02;
+    --sel-bg: var(--fg);
+    --sel-fg: #120c02;
+    --sel-dim: #3a2706;
+    --sel-icon-outline: 1px solid #120c02;
+    --option-bg: #140e04;
+    --status-bg: rgba(255, 182, 66, 0.05);
+    --pip-shadow: 0 0 22px rgba(255, 170, 40, 0.18), inset 0 0 40px rgba(255, 170, 40, 0.07);
+    --icon-filter: drop-shadow(0 0 3px rgba(255, 182, 66, 0.5));
+    --font: 15px/1.35 "Share Tech Mono", "Consolas", ui-monospace, monospace;
+    --title-font: inherit;
+    --radius: 10px;
   }
+  /* Skyrim: the same layout in the colours of the game's menus: white text on smoky black, thin grey rules */
+  body[data-game="skyrim"] {
+    --fg: #e4e1d8;
+    --hi: #ffffff;
+    --dim: #8f8b81;
+    --faint: rgba(228, 225, 216, 0.08);
+    --line: rgba(228, 225, 216, 0.32);
+    --bg: #050505;
+    --panel: rgba(6, 6, 6, 0.84);
+    --glow: none;
+    --on-fg: #050505;
+    --sel-bg: rgba(255, 255, 255, 0.13);
+    --sel-fg: #ffffff;
+    --sel-dim: #c9c5ba;
+    --sel-icon-outline: none;
+    --option-bg: #101010;
+    --status-bg: rgba(255, 255, 255, 0.03);
+    --pip-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), inset 0 0 0 4px rgba(0, 0, 0, 0.55), inset 0 0 0 5px rgba(228, 225, 216, 0.14);
+    --icon-filter: drop-shadow(0 0 1px #000);
+    --font: 300 16px/1.35 "Jost", "Futura", "Century Gothic", sans-serif;
+    --title-font: 600 19px/1.2 "Cinzel", "Trajan Pro", Georgia, serif;
+    --radius: 2px;
+  }
+  body[data-game="skyrim"] #pip::after { display: none; }        /* no CRT scanlines */
+  body[data-game="skyrim"] #mapSelect { font: var(--title-font); letter-spacing: 0.06em;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23e4e1d8' stroke-width='1.5'/%3E%3C/svg%3E"); }
+  body[data-game="skyrim"] nav button { font-size: 14px; font-weight: 400; letter-spacing: 0.22em; }
+  body[data-game="skyrim"] nav button[aria-selected="true"]::before { left: 30%; right: 30%; height: 0;
+    border: none; border-bottom: 1px solid var(--hi); bottom: 3px; }
+  body[data-game="skyrim"] .brand { font-family: "Cinzel", Georgia, serif; letter-spacing: 0.3em; }
+  body[data-game="skyrim"] .box { border-width: 1px; border-radius: 1px; }
+  body[data-game="skyrim"] #vignette { background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.7) 100%); }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--amber);
-    font: 15px/1.35 "Share Tech Mono", "Consolas", ui-monospace, monospace; overflow: hidden; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+    font: var(--font); overflow: hidden; }
   #map { position: absolute; inset: 0; }
   /* light CRT vignette over the whole screen */
   #vignette { position: absolute; inset: 0; pointer-events: none; z-index: 1;
@@ -30,8 +74,8 @@
 
   /* ---------- Pip-Boy panel ---------- */
   #pip { position: absolute; top: 14px; left: 14px; bottom: 14px; width: 360px; z-index: 2;
-    display: flex; flex-direction: column; background: var(--panel); border: 2px solid var(--amber-line);
-    border-radius: 10px; box-shadow: 0 0 22px rgba(255, 170, 40, 0.18), inset 0 0 40px rgba(255, 170, 40, 0.07);
+    display: flex; flex-direction: column; background: var(--panel); border: 2px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--pip-shadow);
     text-shadow: var(--glow); overflow: hidden; }
   #pip::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 8px;
     background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px);
@@ -41,86 +85,86 @@
 
   #pip header { padding: 10px 14px 0; }
   .brand { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px;
-    color: var(--amber-dim); letter-spacing: 0.12em; }
+    color: var(--dim); letter-spacing: 0.12em; }
   #mapSelect { appearance: none; width: 100%; margin: 6px 0 8px; padding: 6px 30px 6px 8px; cursor: pointer;
     background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23ffb642' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 10px center;
-    color: var(--amber-hi); border: 1px solid var(--amber-line); border-radius: 3px;
+    color: var(--hi); border: 1px solid var(--line); border-radius: 3px;
     font: inherit; font-size: 20px; letter-spacing: 0.08em; text-transform: uppercase; text-shadow: var(--glow); }
-  #mapSelect option { background: #140e04; color: var(--amber); }
-  nav { display: flex; gap: 0; border-bottom: 2px solid var(--amber-line); }
-  nav button { flex: 1; padding: 6px 0 5px; background: none; border: none; color: var(--amber-dim);
+  #mapSelect option, #mapSelect optgroup { background: var(--option-bg); color: var(--fg); }
+  nav { display: flex; gap: 0; border-bottom: 2px solid var(--line); }
+  nav button { flex: 1; padding: 6px 0 5px; background: none; border: none; color: var(--dim);
     font: inherit; font-size: 16px; letter-spacing: 0.1em; cursor: pointer; position: relative; text-shadow: inherit; }
-  nav button[aria-selected="true"] { color: var(--amber-hi); }
+  nav button[aria-selected="true"] { color: var(--hi); }
   nav button[aria-selected="true"]::before { content: ""; position: absolute; left: 8%; right: 8%; bottom: -2px;
-    height: 10px; border: 2px solid var(--amber); border-bottom: none; border-radius: 2px 2px 0 0; }
-  nav button:focus-visible { outline: 1px dashed var(--amber); outline-offset: -3px; }
+    height: 10px; border: 2px solid var(--fg); border-bottom: none; border-radius: 2px 2px 0 0; }
+  nav button:focus-visible { outline: 1px dashed var(--fg); outline-offset: -3px; }
 
   .tab { display: none; flex: 1; min-height: 0; flex-direction: column; }
   .tab.active { display: flex; }
   .tools { padding: 10px 14px 8px; display: grid; gap: 8px; }
-  #search { width: 100%; padding: 6px 8px; background: var(--amber-faint); color: var(--amber-hi);
-    border: 1px solid var(--amber-line); border-radius: 3px; font: inherit; text-shadow: var(--glow); }
-  #search::placeholder { color: var(--amber-dim); }
-  #search:focus { outline: none; border-color: var(--amber); }
+  #search { width: 100%; padding: 6px 8px; background: var(--faint); color: var(--hi);
+    border: 1px solid var(--line); border-radius: 3px; font: inherit; text-shadow: var(--glow); }
+  #search::placeholder { color: var(--dim); }
+  #search:focus { outline: none; border-color: var(--fg); }
   ul.list { list-style: none; margin: 0; padding: 2px 0 8px; overflow-y: auto; flex: 1;
-    scrollbar-width: thin; scrollbar-color: var(--amber-dim) transparent; }
+    scrollbar-width: thin; scrollbar-color: var(--dim) transparent; }
   ul.list li { padding: 4px 14px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; }
-  ul.list li .kind { color: var(--amber-dim); font-size: 12px; white-space: nowrap; align-self: center; }
+  ul.list li .kind { color: var(--dim); font-size: 12px; white-space: nowrap; align-self: center; }
   ul.list li .ico { width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px;
-    filter: drop-shadow(0 0 3px rgba(255, 182, 66, 0.5)); }
-  ul.list li:hover .ico, ul.list li:focus-visible .ico, ul.list li.sel .ico { outline: 1px solid #120c02; filter: none; }
-  ul.list li:hover, ul.list li:focus-visible, ul.list li.sel { background: var(--amber); color: #120c02;
+    filter: var(--icon-filter); }
+  ul.list li:hover .ico, ul.list li:focus-visible .ico, ul.list li.sel .ico { outline: var(--sel-icon-outline); filter: none; }
+  ul.list li:hover, ul.list li:focus-visible, ul.list li.sel { background: var(--sel-bg); color: var(--sel-fg);
     text-shadow: none; outline: none; }
-  ul.list li:hover .kind, ul.list li:focus-visible .kind, ul.list li.sel .kind { color: #3a2706; }
+  ul.list li:hover .kind, ul.list li:focus-visible .kind, ul.list li.sel .kind { color: var(--sel-dim); }
 
   /* settings tab */
   .rows { padding: 12px 14px; display: grid; gap: 10px; }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; }
   .row input { position: absolute; opacity: 0; pointer-events: none; }
-  .box { width: 16px; height: 16px; border: 2px solid var(--amber); flex: none; box-shadow: var(--glow); }
-  .row input:checked + .box { background: var(--amber); }
-  .row input:focus-visible + .box { outline: 1px dashed var(--amber); outline-offset: 3px; }
-  .note { color: var(--amber-dim); font-size: 12px; padding: 0 14px 12px; }
+  .box { width: 16px; height: 16px; border: 2px solid var(--fg); flex: none; box-shadow: var(--glow); }
+  .row input:checked + .box { background: var(--fg); }
+  .row input:focus-visible + .box { outline: 1px dashed var(--fg); outline-offset: 3px; }
+  .note { color: var(--dim); font-size: 12px; padding: 0 14px 12px; }
 
   /* radio tab */
   #stations li .kind { min-width: 3.5em; text-align: right; }
   #stations li.off { opacity: 0.45; }
   #wave { display: block; width: calc(100% - 28px); height: 110px; margin: 6px 14px 4px;
-    border: 1px solid var(--amber-line); background:
-      linear-gradient(var(--amber-faint) 1px, transparent 1px) 0 0 / 100% 25%,
-      linear-gradient(90deg, var(--amber-faint) 1px, transparent 1px) 0 0 / 10% 100%; }
+    border: 1px solid var(--line); background:
+      linear-gradient(var(--faint) 1px, transparent 1px) 0 0 / 100% 25%,
+      linear-gradient(90deg, var(--faint) 1px, transparent 1px) 0 0 / 10% 100%; }
   .radio-info { padding: 4px 14px 10px; display: grid; gap: 6px; }
-  #nowPlaying { color: var(--amber-hi); min-height: 1.35em; }
-  #subtitle { min-height: 3.9em; font-size: 13px; color: var(--amber); opacity: 0.9; }
-  .signal { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--amber-dim); }
+  #nowPlaying { color: var(--hi); min-height: 1.35em; }
+  #subtitle { min-height: 3.9em; font-size: 13px; color: var(--fg); opacity: 0.9; }
+  .signal { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim); }
   .bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 12px; }
-  .bars i { width: 4px; background: var(--amber-faint); border: 1px solid var(--amber-dim); }
-  .bars i.on { background: var(--amber); border-color: var(--amber); }
+  .bars i { width: 4px; background: var(--faint); border: 1px solid var(--dim); }
+  .bars i.on { background: var(--fg); border-color: var(--fg); }
   .radio-controls { display: flex; gap: 8px; align-items: center; }
-  .btn { padding: 4px 10px; background: none; border: 1px solid var(--amber); color: var(--amber);
+  .btn { padding: 4px 10px; background: none; border: 1px solid var(--fg); color: var(--fg);
     font: inherit; cursor: pointer; text-shadow: inherit; border-radius: 2px; }
-  .btn:hover, .btn:focus-visible { background: var(--amber); color: #120c02; text-shadow: none; outline: none; }
-  input[type=range] { flex: 1; accent-color: var(--amber); }
+  .btn:hover, .btn:focus-visible { background: var(--sel-bg); color: var(--sel-fg); text-shadow: none; outline: none; }
+  input[type=range] { flex: 1; accent-color: var(--fg); }
 
   #status { display: flex; justify-content: space-between; gap: 8px; padding: 6px 14px; font-size: 12px;
-    border-top: 2px solid var(--amber-line); color: var(--amber-dim); background: rgba(255, 182, 66, 0.05); }
-  #status span:first-child { color: var(--amber); }
-  #onair { display: none; padding: 4px 14px; font-size: 12px; border-top: 1px solid var(--amber-line);
-    color: var(--amber-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    border-top: 2px solid var(--line); color: var(--dim); background: var(--status-bg); }
+  #status span:first-child { color: var(--fg); }
+  #onair { display: none; padding: 4px 14px; font-size: 12px; border-top: 1px solid var(--line);
+    color: var(--hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #onair.show { display: block; }
   #toggle { display: none; }
 
   /* Cesium chrome in Pip-Boy colours */
   .cesium-viewer .cesium-button.cesium-toolbar-button, .cesium-viewer .cesium-fullscreenButton {
-    background: var(--panel) !important; border: 1px solid var(--amber-line) !important; border-radius: 4px;
-    fill: var(--amber) !important; color: var(--amber) !important; }
+    background: var(--panel) !important; border: 1px solid var(--line) !important; border-radius: 4px;
+    fill: var(--fg) !important; color: var(--fg) !important; }
   .cesium-viewer .cesium-button.cesium-toolbar-button:hover, .cesium-viewer .cesium-fullscreenButton:hover {
-    background: var(--amber) !important; fill: #120c02 !important; box-shadow: var(--glow) !important; }
+    background: var(--fg) !important; fill: var(--on-fg) !important; box-shadow: var(--glow) !important; }
   .cesium-viewer .cesium-button svg path, .cesium-viewer .cesium-svgPath-svg path { fill: currentColor; }
-  .cesium-viewer .cesium-button.cesium-toolbar-button:hover svg path { fill: #120c02; }
+  .cesium-viewer .cesium-button.cesium-toolbar-button:hover svg path { fill: var(--on-fg); }
   .cesium-viewer-bottom { opacity: 0.45; }
-  .cesium-navigation-help, .cesium-navigation-help-instructions { background: var(--panel); color: var(--amber);
-    border-color: var(--amber-line); font-family: inherit; }
+  .cesium-navigation-help, .cesium-navigation-help-instructions { background: var(--panel); color: var(--fg);
+    border-color: var(--line); font-family: inherit; }
 
   @media (max-width: 700px) {
     #pip { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; height: 52%; }
@@ -169,7 +213,7 @@
     <div class="rows" id="layers">
       <label class="row"><span>Location markers</span><input id="labels" type="checkbox" checked><span class="box"></span></label>
     </div>
-    <p class="note">Terrain, textures, models and radio extracted from Fallout: New Vegas. Drag to pan, Ctrl+drag to tilt, scroll to zoom.</p>
+    <p class="note" id="note"></p>
   </section>
 
   <div id="onair" aria-live="polite"></div>
@@ -178,19 +222,56 @@
 
 <script type="module">
 // only maps whose data is present: work-in-progress maps are kept locally and left out of the published site
+// A map's data is in maps/<id>/, or for maps too large for this site in a separate repository ("data": its
+// GitHub Pages URL). A local copy wins, so data built locally can be viewed before it is published.
 const listed = await (await fetch("maps.json")).json();
-const present = await Promise.all(listed.map((m) =>
-  fetch(`maps/${m.id}/world.json`, { method: "HEAD" }).then((r) => r.ok).catch(() => false)));
-const maps = listed.filter((_, i) => present[i]);
+const exists = (url) => fetch(url, { method: "HEAD" }).then((r) => r.ok).catch(() => false);
+const bases = await Promise.all(listed.map(async (m) => {
+  if (await exists(`maps/${m.id}/world.json`)) return `maps/${m.id}/`;
+  return m.data && await exists(`${m.data}world.json`) ? m.data : null;
+}));
+const maps = listed.filter((_, i) => bases[i]);
 const params = new URLSearchParams(location.search);
 const current = maps.find((m) => m.id === params.get("map")) ?? maps[0];
-const base = `maps/${current.id}/`;
+const base = bases[listed.indexOf(current)];
 const $ = (id) => document.getElementById(id);
 
+// per-game look and wording; the CSS theme follows body[data-game]
+const GAMES = {
+  fnv: {
+    name: "Fallout: New Vegas", brand: "ROBCO PIP-BOY 3000", title: "Pip-Boy 3000",
+    credit: "Fallout: New Vegas © Bethesda Softworks / Obsidian Entertainment",
+    note: "Terrain, textures, models and radio extracted from Fallout: New Vegas.",
+    search: "> search location_",
+    // mid-afternoon in Las Vegas (UTC-7) so models are sunlit and the sky is daytime
+    time: "2026-06-21T22:00:00Z", skyHue: -0.05, skySaturation: -0.3, waterEffect: true,
+    label: { font: "15px 'Share Tech Mono', Consolas, monospace", fill: "#ffd27a", outline: "#140c00", upper: true },
+  },
+  skyrim: {
+    name: "Skyrim", brand: "ATLAS OF TAMRIEL", title: "Atlas of Tamriel",
+    credit: "The Elder Scrolls V: Skyrim © Bethesda Softworks",
+    note: "Terrain, textures, models and map icons extracted from The Elder Scrolls V: Skyrim Special Edition.",
+    search: "Search locations",
+    // early afternoon at the map's nominal place (61.5° N 8.5° E)
+    time: "2026-06-21T12:30:00Z", skyHue: 0, skySaturation: -0.1, waterEffect: false,
+    label: { font: "600 15px Cinzel, Georgia, serif", fill: "#f4f1e8", outline: "#000000", upper: false },
+  },
+};
+const game = GAMES[current.game ?? "fnv"];
+document.body.dataset.game = current.game ?? "fnv";
+document.querySelector(".brand span").textContent = game.brand;
+$("search").placeholder = game.search;
+$("note").textContent = `${game.note} Drag to pan, Ctrl+drag to tilt, scroll to zoom.`;
+
 const select = $("mapSelect");
-for (const m of maps) select.add(new Option(m.title, m.id, false, m.id === current.id));
+for (const g of new Set(maps.map((m) => m.game ?? "fnv"))) {
+  const group = document.createElement("optgroup");
+  group.label = GAMES[g].name;
+  for (const m of maps.filter((x) => (x.game ?? "fnv") === g)) group.append(new Option(m.title, m.id, false, m.id === current.id));
+  select.append(group);
+}
 select.onchange = () => { location.search = `?map=${select.value}`; };
-document.title = `${current.title} · Pip-Boy 3000`;
+document.title = `${current.title} · ${game.title}`;
 
 // ---------- tabs ----------
 const tabs = [...document.querySelectorAll("nav [role=tab]")];
@@ -237,26 +318,26 @@ viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
   tilingScheme: new Cesium.GeographicTilingScheme(),
   rectangle: rect,
   maximumLevel: world.imageryMaxLevel,
-  credit: "Fallout: New Vegas © Bethesda Softworks / Obsidian Entertainment",
+  credit: game.credit,
 }));
 
 const scene = viewer.scene;
 const globe = scene.globe;
 globe.cartographicLimitRectangle = rect;   // draw only the game world
-globe.baseColor = Cesium.Color.fromCssColorString("#080602");
+globe.baseColor = Cesium.Color.fromCssColorString(getComputedStyle(document.body).getPropertyValue("--bg").trim());
 globe.showGroundAtmosphere = false;
+globe.showWaterEffect = game.waterEffect;   // animated waves; Skyrim reads better with the flat dark water of its map
 globe.depthTestAgainstTerrain = true;
 globe.maximumScreenSpaceError = 1.5;
 // keep terrain tiles around (default 100) so panning back does not re-request them
 globe.tileCacheSize = 1000;
 globe.preloadSiblings = true;
 scene.verticalExaggeration = 1.0;   // always true scale: models would stretch with exaggeration
-// fixed mid-afternoon in Las Vegas (UTC-7) so models are sunlit and the sky is daytime
-viewer.clock.currentTime = Cesium.JulianDate.fromIso8601("2026-06-21T22:00:00Z");
+viewer.clock.currentTime = Cesium.JulianDate.fromIso8601(game.time);
 viewer.clock.shouldAnimate = false;
 scene.fog.density = 0.00008;
-scene.skyAtmosphere.hueShift = -0.05;
-scene.skyAtmosphere.saturationShift = -0.3;
+scene.skyAtmosphere.hueShift = game.skyHue;
+scene.skyAtmosphere.saturationShift = game.skySaturation;
 
 const ssc = scene.screenSpaceCameraController;
 ssc.minimumZoomDistance = 2;
@@ -300,9 +381,9 @@ home(0);
 // ---------- map markers ----------
 const AMBER = Cesium.Color.fromCssColorString("#ffb642");
 const labelStyle = {
-  font: "15px 'Share Tech Mono', Consolas, monospace",
-  fillColor: Cesium.Color.fromCssColorString("#ffd27a"),
-  outlineColor: Cesium.Color.fromCssColorString("#140c00"),
+  font: game.label.font,
+  fillColor: Cesium.Color.fromCssColorString(game.label.fill),
+  outlineColor: Cesium.Color.fromCssColorString(game.label.outline),
   outlineWidth: 4,
   style: Cesium.LabelStyle.FILL_AND_OUTLINE,
   verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
@@ -312,11 +393,12 @@ const labelStyle = {
   distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 2200),
   translucencyByDistance: new Cesium.NearFarScalar(1200, 1.0, 2200, 0.0),
 };
-// the game's world-map icon for each marker type (build_icons.py)
+// the game's world-map icon for each marker (build_icons.py): Skyrim markers name theirs, Fallout ones go by type
 const ICONS = new Set(["cave", "city", "encampment", "entrance", "factory", "metro", "military", "monument",
   "natural_landmark", "office", "settlement", "sewer_ruins", "town_ruins", "urban_ruins", "vault"]);
-const iconOf = (type) => {
-  const s = String(type).toLowerCase().replace(/ /g, "_");
+const iconOf = (m) => {
+  if (m.icon) return `icons/${m.icon}`;
+  const s = String(m.type).toLowerCase().replace(/ /g, "_");
   return `icons/${ICONS.has(s) ? s : "undiscovered"}.png`;
 };
 const markers = new Cesium.CustomDataSource("markers");
@@ -325,7 +407,7 @@ for (const m of world.markers) {
     name: m.name,
     position: Cesium.Cartesian3.fromDegrees(m.lon, m.lat),
     billboard: {
-      image: iconOf(m.type),
+      image: iconOf(m),
       width: 24,
       height: 24,
       scaleByDistance: new Cesium.NearFarScalar(1500, 1.0, 9000, 0.55),
@@ -333,7 +415,7 @@ for (const m of world.markers) {
       heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
       disableDepthTestDistance: Number.POSITIVE_INFINITY,
     },
-    label: { text: m.name.toUpperCase(), ...labelStyle },
+    label: { text: game.label.upper ? m.name.toUpperCase() : m.name, ...labelStyle },
   });
 }
 viewer.dataSources.add(markers);
@@ -368,7 +450,7 @@ function renderList(q = "") {
     const name = document.createElement("span");
     const icon = document.createElement("img");
     icon.className = "ico";
-    icon.src = iconOf(m.type);
+    icon.src = iconOf(m);
     icon.alt = "";
     name.append(icon, m.name);
     const type = document.createElement("span");
@@ -386,23 +468,40 @@ $("labels").addEventListener("change", (ev) => { markers.show = ev.target.checke
 
 // ---------- status bar ----------
 const fmt = (v, pos, neg) => `${Math.abs(v).toFixed(4)}°${v >= 0 ? pos : neg}`;
+const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 function updateStatus() {
   const c = viewer.camera.positionCartographic;
+  if (current.game === "skyrim") {
+    // the nominal latitude/longitude means nothing in Tamriel: show the compass heading and altitude instead
+    const deg = Cesium.Math.toDegrees(viewer.camera.heading);
+    $("coords").textContent = `${COMPASS[Math.round(deg / 45) % 8]} ${Math.round(deg)}° · ${Math.round(c.height)} m`;
+    return;
+  }
   $("coords").textContent = `${fmt(Cesium.Math.toDegrees(c.latitude), "N", "S")} ${fmt(Cesium.Math.toDegrees(c.longitude), "E", "W")} · ${Math.round(c.height)} M`;
 }
 viewer.camera.changed.addEventListener(updateStatus);
 viewer.camera.percentageChanged = 0.01;
 updateStatus();
+// today's date in the game's calendar: 2281 for the Mojave, the Tamrielic calendar of 4E 201 for Skyrim
+const TAMRIEL_DAYS = ["Sundas", "Morndas", "Tirdas", "Middas", "Turdas", "Fredas", "Loredas"];
+const TAMRIEL_MONTHS = ["Morning Star", "Sun's Dawn", "First Seed", "Rain's Hand", "Second Seed", "Midyear",
+  "Sun's Height", "Last Seed", "Hearthfire", "Frostfall", "Sun's Dusk", "Evening Star"];
+const ordinal = (n) => n + (n >= 11 && n <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th");
 function tick() {
   const d = new Date();
-  $("clock").textContent = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}.2281 ${d.toTimeString().slice(0, 5)}`;
+  const time = d.toTimeString().slice(0, 5);
+  $("clock").textContent = current.game === "skyrim"
+    ? `${TAMRIEL_DAYS[d.getDay()]}, ${ordinal(d.getDate())} of ${TAMRIEL_MONTHS[d.getMonth()]} · ${time}`
+    : `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}.2281 ${time}`;
 }
 tick();
 setInterval(tick, 10000);
 
 // ---------- radio ----------
-// radio data is generated locally from the game (build_radio.py) and not published; without it the tab is hidden
-const radio = await fetch("radio/radio.json").then((r) => (r.ok ? r.json() : null)).catch(() => null) ?? { stations: [] };
+// radio data is generated locally from the game (build_radio.py) and not published; without it the tab is hidden.
+// The stations are the Mojave's: other games have no radio.
+const radio = (current.game ?? "fnv") === "fnv"
+  && await fetch("radio/radio.json").then((r) => (r.ok ? r.json() : null)).catch(() => null) || { stations: [] };
 if (!radio.stations.length) {
   const t = $("t-radio");
   tabs.splice(tabs.indexOf(t), 1);

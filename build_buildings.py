@@ -1,5 +1,5 @@
-"""Convert the distant-LOD building blocks of a Fallout 3 / New Vegas worldspace into a
-3D Tiles 1.1 tileset (one GLB per block, shared texture atlas) for CesiumJS.
+"""Convert the distant-LOD building blocks of a Fallout 3 / New Vegas worldspace (or the object LOD blocks
+of a Skyrim SE worldspace, *.bto) into a 3D Tiles 1.1 tileset (one GLB per block, shared texture atlas) for CesiumJS.
 """
 import argparse
 import json
@@ -12,10 +12,10 @@ import numpy as np
 from osgeo import gdal
 
 from bsa import BSA
-from build_cesium import Placement
+from build_cesium import GAMES as CESIUM_GAMES, Placement
 from fnv_terrain import UNIT_M
 from lod_texture import read_dds
-from nif import Nif, read_av_object, read_tri_shape_data
+from nif import Nif, extract_meshes, read_av_object, read_tri_shape_data
 
 gdal.UseExceptions()
 
@@ -43,6 +43,8 @@ def enu_frame(lon, lat):
 
 def read_block(nif):
     """Collect the geometry of a LOD block NIF in game units (node transforms applied)."""
+    if nif.bs_version > 34:               # Skyrim .bto: regular scene graph of BSSubIndexTriShapes
+        return [(p["positions"], p.get("normals"), p.get("uvs"), p["triangles"]) for p in extract_meshes(nif)]
     parts = []
     shapes = {}
     for i, (t, _, _) in enumerate(nif.blocks):
@@ -111,42 +113,56 @@ def glb(positions, normals, uvs, indices, image_uri):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("data", help="game Data directory")
-    ap.add_argument("--meshes", default="Fallout - Meshes.bsa")
-    ap.add_argument("--textures", default="Fallout - Textures2.bsa")
+    ap.add_argument("--game", choices=("fnv", "skyrim"), default="fnv")
+    ap.add_argument("--meshes", help="archive with the blocks (default: the game's)")
+    ap.add_argument("--textures", help="archive with the atlas (default: the game's)")
     ap.add_argument("--world", default="WastelandNV")
     ap.add_argument("-o", "--out", default="site/buildings")
-    ap.add_argument("--lat", type=float, default=36.17)
-    ap.add_argument("--lon", type=float, default=-115.14)
+    ap.add_argument("--lat", type=float, help="nominal latitude of the world origin (as build_cesium.py)")
+    ap.add_argument("--lon", type=float, help="nominal longitude of the world origin")
+    ap.add_argument("--gain", type=float, help="atlas brightness factor (default 1.7 for Skyrim's dark textures)")
     ap.add_argument("--load-distance", type=float, default=60.0,
                     help="geometric error of each block; larger loads blocks from farther away")
     a = ap.parse_args()
 
-    place = Placement(a.lat, a.lon)
+    skyrim = a.game == "skyrim"
+    g = CESIUM_GAMES[a.game]
+    place = Placement(g["lat"] if a.lat is None else a.lat, g["lon"] if a.lon is None else a.lon)
     world = a.world.lower()
     os.makedirs(a.out, exist_ok=True)
 
     # texture atlas
-    tex = BSA(os.path.join(a.data, a.textures))
-    atlas_key = SEP.join(["textures", "landscape", "lod", world, "blocks", f"{world}.buildings.dds"])
+    tex = BSA(os.path.join(a.data, a.textures or ("Skyrim - Textures7.bsa" if skyrim else "Fallout - Textures2.bsa")))
+    if skyrim:
+        atlas_key = SEP.join(["textures", "terrain", world, "objects", f"{world}.objects.dds"])
+    else:
+        atlas_key = SEP.join(["textures", "landscape", "lod", world, "blocks", f"{world}.buildings.dds"])
     rgba = read_dds(tex.read(atlas_key))
+    gain = a.gain if a.gain is not None else (1.7 if skyrim else 1.0)
+    if gain != 1.0:
+        rgba[..., :3] = np.clip(rgba[..., :3] * gain, 0, 255).astype(np.uint8)
     mem = gdal.GetDriverByName("MEM").Create("", rgba.shape[1], rgba.shape[0], 4, gdal.GDT_Byte)
     for i in range(4):
         mem.GetRasterBand(i + 1).WriteArray(rgba[:, :, i])
     gdal.GetDriverByName("PNG").CreateCopy(os.path.join(a.out, "atlas.png"), mem)
 
     # block meshes; Update.bsa overrides the base archive
-    archives = [BSA(os.path.join(a.data, a.meshes))]
+    archives = [BSA(os.path.join(a.data, a.meshes or ("Skyrim - Meshes1.bsa" if skyrim else "Fallout - Meshes.bsa")))]
     if os.path.exists(os.path.join(a.data, "Update.bsa")):
         archives.append(BSA(os.path.join(a.data, "Update.bsa")))
-    pat = re.compile(rf"meshes\\landscape\\lod\\{world}\\blocks\\{world}\.level\d+(\.high)?\.x(-?\d+)\.y(-?\d+)\.nif$")
+    if skyrim:   # the 4x4-cell level only; 8 and 16 are coarser versions for farther away
+        pat = re.compile(rf"meshes\\terrain\\{world}\\objects\\{world}\.4(?P<high>)\.(?P<x>-?\d+)\.(?P<y>-?\d+)\.bto$")
+    else:
+        pat = re.compile(rf"meshes\\landscape\\lod\\{world}\\blocks\\{world}\.level\d+(?P<high>\.high)?"
+                         rf"\.x(?P<x>-?\d+)\.y(?P<y>-?\d+)\.nif$")
     blocks = {}
     for arc in archives:
         for k in arc.files:
             m = pat.match(k)
             if m:
-                xy = (int(m.group(2)), int(m.group(3)))
+                xy = (int(m.group("x")), int(m.group("y")))
                 # ".high" variants are more detailed versions of a few blocks; prefer them
-                if m.group(1) or not blocks.get(xy, (None, ""))[1].count(".high."):
+                if m.group("high") or not blocks.get(xy, (None, ""))[1].count(".high."):
                     blocks[xy] = (arc, k)
 
     children, nverts, ntris = [], 0, 0
