@@ -1,7 +1,8 @@
 """Extract the world-map icons for the location markers.
 
 Fallout: New Vegas: the DDS icons, tinted like the Pip-Boy, into <site>/icons as PNGs named after the marker
-types used in world.json (e.g. "Natural landmark" -> natural_landmark.png).
+types used in world.json (e.g. "Natural landmark" -> natural_landmark.png). Fallout 3: the same set, green,
+in <site>/icons/fo3.
 Skyrim: the vector symbols of interface\\map.swf as SVGs in <site>/icons/skyrim (e.g. CaveMarker -> cave.svg,
 WhiterunCapitolMarker -> whiterun_capitol.svg), referenced by the "icon" field of each marker.
 """
@@ -28,8 +29,12 @@ ICONS = {"City": "world map\\icon_map_city", "Settlement": "world map\\icon_map_
          "Urban ruins": "world map\\icon_map_ruins_urban", "Sewer ruins": "world map\\icon_map_ruins_sewer",
          "Metro": "world map\\icon_map_metro", "Vault": "world map\\icon_map_vault",
          "Entrance": "local map\\icon_local_door", "Undiscovered": "world map\\icon_map_undiscovered"}
-AMBER = np.array([255, 182, 66], np.float32)     # Pip-Boy HUD colour
-INK = np.array([20, 12, 2], np.float32)          # the symbol cut out of the amber square
+# Pip-Boy HUD colour and the dark ink of the symbol cut out of the coloured square: amber in New Vegas,
+# green in Fallout 3
+AMBER = np.array([255, 182, 66], np.float32)
+INK = np.array([20, 12, 2], np.float32)
+GREEN = np.array([26, 255, 128], np.float32)
+GREEN_INK = np.array([2, 18, 8], np.float32)
 
 
 def slug(marker_type):
@@ -42,7 +47,7 @@ def skyrim_slug(symbol):
     return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
 
 
-def fnv_icons(data, textures, out):
+def fnv_icons(data, textures, out, color=AMBER, ink=INK):
     tex = BSA(os.path.join(data, textures))
     os.makedirs(out, exist_ok=True)
     png = gdal.GetDriverByName("PNG")
@@ -51,10 +56,10 @@ def fnv_icons(data, textures, out):
         lum = img[..., :3].mean(axis=2, keepdims=True) / 255
         if img.shape[2] == 4 and img[..., 3].min() < 255:
             # white square with the symbol in black: amber square, dark symbol
-            rgba = np.concatenate([AMBER * lum + INK * (1 - lum), img[..., 3:4]], axis=2)
+            rgba = np.concatenate([color * lum + ink * (1 - lum), img[..., 3:4]], axis=2)
         else:
             # no alpha (city): drawn additively in game, so black is transparent and white is the symbol
-            rgba = np.concatenate([np.broadcast_to(AMBER, lum.shape[:2] + (3,)), lum * 255], axis=2)
+            rgba = np.concatenate([np.broadcast_to(color, lum.shape[:2] + (3,)), lum * 255], axis=2)
         rgba = np.clip(np.round(rgba), 0, 255).astype(np.uint8)
         mem = gdal.GetDriverByName("MEM").Create("", rgba.shape[1], rgba.shape[0], 4, gdal.GDT_Byte)
         for i in range(4):
@@ -77,15 +82,17 @@ def skyrim_icons(data, interface, out):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("data", help="game Data directory")
-    ap.add_argument("--game", choices=("fnv", "skyrim"), default="fnv")
-    ap.add_argument("--textures", default="Fallout - Textures2.bsa", help="FNV archive with the icons")
+    ap.add_argument("--game", choices=("fnv", "fo3", "skyrim"), default="fnv")
+    ap.add_argument("--textures", help="FNV / FO3 archive with the icons (default: the game's)")
     ap.add_argument("--interface", default="Skyrim - Interface.bsa", help="Skyrim archive with map.swf")
-    ap.add_argument("-o", "--out", help="default: site/icons (FNV) or site/icons/skyrim")
+    ap.add_argument("-o", "--out", help="default: site/icons (FNV), site/icons/fo3 or site/icons/skyrim")
     a = ap.parse_args()
     if a.game == "skyrim":
         skyrim_icons(a.data, a.interface, a.out or "site/icons/skyrim")
+    elif a.game == "fo3":
+        fnv_icons(a.data, a.textures or "Fallout - Textures.bsa", a.out or "site/icons/fo3", GREEN, GREEN_INK)
     else:
-        fnv_icons(a.data, a.textures, a.out or "site/icons")
+        fnv_icons(a.data, a.textures or "Fallout - Textures2.bsa", a.out or "site/icons")
 
 
 if __name__ == "__main__":

@@ -144,7 +144,9 @@ def parse_worlds(path, markers=None, water=None, strings=None):
                     if st == b"VHGT":
                         lands.setdefault(w, {})[(x, y)] = decode_vhgt(sd)
                         break
-            elif typ == b"REFR" and markers is not None and world is not None:
+            # initially disabled markers (0x800) are not on the map at the start of the game, e.g. Fallout 3's
+            # internal downtown sectors "DC01a" or "Megaton Ruins"
+            elif typ == b"REFR" and markers is not None and world is not None and not flags & 0x800:
                 sub = dict(subrecords(record_data(buf, dpos, size, flags)))
                 if b"XMRK" in sub and b"FULL" in sub and b"DATA" in sub:
                     px, py, pz = struct.unpack_from("<3f", sub[b"DATA"], 0)

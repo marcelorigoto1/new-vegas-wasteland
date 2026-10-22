@@ -11,3 +11,5 @@ site/maps/freeside/
 # Skyrim's data is its own repository (github.com/marcelorigoto1/tes-skyrim), published separately because
 # the GitHub Pages size limit (1 GB) does not fit every map in one site
 site/maps/skyrim/
+# Fallout 3's Capital Wasteland (about 650 MB), also too large for this site: published from its own repository
+site/maps/capital/

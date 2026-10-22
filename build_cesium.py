@@ -46,6 +46,15 @@ SKYRIM_ICONS = [
 GAMES = {
     "fnv": dict(plugins=["FalloutNV.esm"], textures=["Fallout - Textures2.bsa"], strings=None,
                 markers=MARKER_TYPES, icons=None, lod_rotated=True, lat=36.17, lon=-115.14, children={}),
+    # Fallout 3 (GOTY): the New Vegas formats; the Capital Wasteland is placed at Washington, D.C.
+    "fo3": dict(plugins=["Fallout3.esm", "Anchorage.esm", "ThePitt.esm", "BrokenSteel.esm", "PointLookout.esm",
+                         "Zeta.esm"],
+                textures=["Fallout - Textures.bsa"], strings=None,
+                markers=MARKER_TYPES, icons=None, lod_rotated=True, lat=38.89, lon=-77.03,
+                # Megaton and downtown D.C. are child worldspaces in the Wasteland's coordinates. (Not every
+                # child worldspace shares them, e.g. Skyrim's Fort Dawnguard: hence explicit lists.)
+                children={"Wasteland": ["MegatonWorld", "DLC02BaileysCrossroads"] + [
+                    f"DCworld{i:02d}" for i in (1, 3, 5, 6, 8, 9, 10, 11, 12, 15, 17, 18)]}),
     "skyrim": dict(plugins=["Skyrim.esm", "Update.esm", "Dawnguard.esm", "HearthFires.esm", "Dragonborn.esm"],
                    textures=["Skyrim - Textures6.bsa", "Skyrim - Textures7.bsa"],
                    strings="Skyrim - Interface.bsa", markers=SKYRIM_MARKER_TYPES, icons=SKYRIM_ICONS, lod_rotated=False,

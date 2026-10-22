@@ -113,7 +113,7 @@ def glb(positions, normals, uvs, indices, image_uri):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("data", help="game Data directory")
-    ap.add_argument("--game", choices=("fnv", "skyrim"), default="fnv")
+    ap.add_argument("--game", choices=("fnv", "fo3", "skyrim"), default="fnv")
     ap.add_argument("--meshes", help="archive with the blocks (default: the game's)")
     ap.add_argument("--textures", help="archive with the atlas (default: the game's)")
     ap.add_argument("--world", default="WastelandNV")
@@ -132,7 +132,9 @@ def main():
     os.makedirs(a.out, exist_ok=True)
 
     # texture atlas
-    tex = BSA(os.path.join(a.data, a.textures or ("Skyrim - Textures7.bsa" if skyrim else "Fallout - Textures2.bsa")))
+    default_textures = {"skyrim": "Skyrim - Textures7.bsa", "fo3": "Fallout - Textures.bsa"}.get(a.game,
+                                                                                               "Fallout - Textures2.bsa")
+    tex = BSA(os.path.join(a.data, a.textures or default_textures))
     if skyrim:
         atlas_key = SEP.join(["textures", "terrain", world, "objects", f"{world}.objects.dds"])
     else:

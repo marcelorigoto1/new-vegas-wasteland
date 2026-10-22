@@ -32,6 +32,28 @@
     --title-font: inherit;
     --radius: 10px;
   }
+  /* Fallout 3: the Pip-Boy in its default green */
+  body[data-game="fo3"] {
+    --fg: #1aff80;
+    --hi: #8affc1;
+    --dim: #14a356;
+    --faint: rgba(26, 255, 128, 0.14);
+    --line: rgba(26, 255, 128, 0.45);
+    --bg: #020803;
+    --panel: rgba(3, 14, 7, 0.9);
+    --glow: 0 0 6px rgba(26, 255, 128, 0.55);
+    --on-fg: #021208;
+    --sel-bg: var(--fg);                /* re-declared: the :root value was computed with amber */
+    --sel-fg: #021208;
+    --sel-dim: #0a4a26;
+    --sel-icon-outline: 1px solid #021208;
+    --option-bg: #04140a;
+    --status-bg: rgba(26, 255, 128, 0.05);
+    --pip-shadow: 0 0 22px rgba(26, 255, 128, 0.16), inset 0 0 40px rgba(26, 255, 128, 0.07);
+    --icon-filter: drop-shadow(0 0 3px rgba(26, 255, 128, 0.5));
+  }
+  body[data-game="fo3"] #mapSelect {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%231aff80' stroke-width='2'/%3E%3C/svg%3E"); }
   /* Skyrim: the same layout in the colours of the game's menus: white text on smoky black, thin grey rules */
   body[data-game="skyrim"] {
     --fg: #e4e1d8;
@@ -239,13 +261,22 @@ const $ = (id) => document.getElementById(id);
 // per-game look and wording; the CSS theme follows body[data-game]
 const GAMES = {
   fnv: {
-    name: "Fallout: New Vegas", brand: "ROBCO PIP-BOY 3000", title: "Pip-Boy 3000",
+    name: "Fallout: New Vegas", brand: "ROBCO PIP-BOY 3000", title: "Pip-Boy 3000", iconDir: "icons/", year: 2281,
     credit: "Fallout: New Vegas © Bethesda Softworks / Obsidian Entertainment",
     note: "Terrain, textures, models and radio extracted from Fallout: New Vegas.",
     search: "> search location_",
     // mid-afternoon in Las Vegas (UTC-7) so models are sunlit and the sky is daytime
     time: "2026-06-21T22:00:00Z", skyHue: -0.05, skySaturation: -0.3, waterEffect: true,
     label: { font: "15px 'Share Tech Mono', Consolas, monospace", fill: "#ffd27a", outline: "#140c00", upper: true },
+  },
+  fo3: {
+    name: "Fallout 3", brand: "ROBCO PIP-BOY 3000", title: "Pip-Boy 3000", iconDir: "icons/fo3/", year: 2277,
+    credit: "Fallout 3 © Bethesda Softworks",
+    note: "Terrain, textures and models extracted from Fallout 3.",
+    search: "> search location_",
+    // mid-afternoon in Washington, D.C. (UTC-4)
+    time: "2026-06-21T19:00:00Z", skyHue: -0.05, skySaturation: -0.35, waterEffect: true,
+    label: { font: "15px 'Share Tech Mono', Consolas, monospace", fill: "#8affc1", outline: "#021208", upper: true },
   },
   skyrim: {
     name: "Skyrim", brand: "ATLAS OF TAMRIEL", title: "Atlas of Tamriel",
@@ -399,7 +430,7 @@ const ICONS = new Set(["cave", "city", "encampment", "entrance", "factory", "met
 const iconOf = (m) => {
   if (m.icon) return `icons/${m.icon}`;
   const s = String(m.type).toLowerCase().replace(/ /g, "_");
-  return `icons/${ICONS.has(s) ? s : "undiscovered"}.png`;
+  return `${game.iconDir}${ICONS.has(s) ? s : "undiscovered"}.png`;
 };
 const markers = new Cesium.CustomDataSource("markers");
 for (const m of world.markers) {
@@ -482,7 +513,7 @@ function updateStatus() {
 viewer.camera.changed.addEventListener(updateStatus);
 viewer.camera.percentageChanged = 0.01;
 updateStatus();
-// today's date in the game's calendar: 2281 for the Mojave, the Tamrielic calendar of 4E 201 for Skyrim
+// today's date in the game's calendar: 2281 in the Mojave, 2277 in the Capital Wasteland, the Tamrielic calendar for Skyrim
 const TAMRIEL_DAYS = ["Sundas", "Morndas", "Tirdas", "Middas", "Turdas", "Fredas", "Loredas"];
 const TAMRIEL_MONTHS = ["Morning Star", "Sun's Dawn", "First Seed", "Rain's Hand", "Second Seed", "Midyear",
   "Sun's Height", "Last Seed", "Hearthfire", "Frostfall", "Sun's Dusk", "Evening Star"];
@@ -492,7 +523,7 @@ function tick() {
   const time = d.toTimeString().slice(0, 5);
   $("clock").textContent = current.game === "skyrim"
     ? `${TAMRIEL_DAYS[d.getDay()]}, ${ordinal(d.getDate())} of ${TAMRIEL_MONTHS[d.getMonth()]} · ${time}`
-    : `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}.2281 ${time}`;
+    : `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}.${game.year} ${time}`;
 }
 tick();
 setInterval(tick, 10000);

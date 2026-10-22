@@ -1,6 +1,7 @@
 # Pip-Boy 3000 · Fallout: New Vegas 3D Maps
 
-Interactive 3D maps of the Mojave Wasteland and The Strip (Fallout: New Vegas) and of Skyrim, built with
+Interactive 3D maps of the Mojave Wasteland and The Strip (Fallout: New Vegas), the Capital Wasteland
+(Fallout 3) and Skyrim, built with
 [CesiumJS](https://cesium.com/platform/cesiumjs/) from data extracted directly from the game files.
 The interface is styled after the Pip-Boy 3000.
 
@@ -53,6 +54,22 @@ python build_icons.py "$DATA" -o site/icons
 
 # radio stations (local use only)
 python build_radio.py "$DATA" -o site/radio
+```
+
+Fallout 3 GOTY (`$FO3` is its `Data` directory) uses the same formats; `--game fo3` reads Fallout3.esm with the five
+DLCs, places the Capital Wasteland at Washington, D.C. and gives it a green Pip-Boy. Megaton and the downtown D.C.
+sectors are separate worldspaces in the Wasteland's coordinates: their markers are merged automatically, and their
+models with `--replace-parent`, which drops the Wasteland's low-detail stand-ins in the cells they cover.
+
+```sh
+python build_cesium.py "$FO3" --game fo3 --world Wasteland -o site/maps/capital --title "Capital Wasteland" \
+    --tileset "Buildings=models/tileset.json"
+python build_buildings.py "$FO3" --game fo3 --world Wasteland -o site/maps/capital/buildings
+python build_models.py "$FO3" --game fo3 --world Wasteland --world MegatonWorld --world DLC02BaileysCrossroads \
+    --world DCworld01 --world DCworld03 --world DCworld05 --world DCworld06 --world DCworld08 --world DCworld09 \
+    --world DCworld10 --world DCworld11 --world DCworld12 --world DCworld15 --world DCworld17 --world DCworld18 \
+    --replace-parent -o site/maps/capital/models --tile-cells 4 --lod-tileset site/maps/capital/buildings/tileset.json
+python build_icons.py "$FO3" --game fo3
 ```
 
 Skyrim Special Edition (`$SKYRIM` is its `Data` directory). `--game skyrim` reads Skyrim.esm with Update and the
@@ -108,4 +125,4 @@ site has no radio. Do not publish it.
 
 Fallout: New Vegas © Bethesda Softworks / ZeniMax Media, developed by Obsidian Entertainment. The terrain,
 textures and models in this site are extracted from the game. This is an unofficial fan project, not
-affiliated with or endorsed by Bethesda, ZeniMax or Obsidian. The Elder Scrolls V: Skyrim © Bethesda Softworks / ZeniMax Media, likewise unaffiliated. Rendering by CesiumJS (Apache 2.0).
+affiliated with or endorsed by Bethesda, ZeniMax or Obsidian. Fallout 3 and The Elder Scrolls V: Skyrim © Bethesda Softworks / ZeniMax Media, likewise unaffiliated. Rendering by CesiumJS (Apache 2.0).

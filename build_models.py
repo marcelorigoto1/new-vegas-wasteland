@@ -31,6 +31,12 @@ MODEL_TYPES = {b"STAT", b"MSTT", b"ACTI", b"DOOR", b"CONT", b"FURN", b"TACT", b"
 GAMES = {
     "fnv": dict(plugins=["FalloutNV.esm"], meshes=["Fallout - Meshes.bsa", "Update.bsa"], skip=None,
                 textures=["Fallout - Textures.bsa", "Fallout - Textures2.bsa", "Update.bsa"], gain=1.0),
+    "fo3": dict(plugins=["Fallout3.esm", "Anchorage.esm", "ThePitt.esm", "BrokenSteel.esm", "PointLookout.esm",
+                         "Zeta.esm"],
+                meshes=["Fallout - Meshes.bsa", "Anchorage - Main.bsa", "ThePitt - Main.bsa", "BrokenSteel - Main.bsa",
+                        "PointLookout - Main.bsa", "Zeta - Main.bsa"], skip=None,
+                textures=["Fallout - Textures.bsa", "Anchorage - Main.bsa", "ThePitt - Main.bsa",
+                          "BrokenSteel - Main.bsa", "PointLookout - Main.bsa", "Zeta - Main.bsa"], gain=1.0),
     "skyrim": dict(plugins=["Skyrim.esm", "Update.esm", "Dawnguard.esm", "HearthFires.esm", "Dragonborn.esm"],
                    meshes=["Skyrim - Meshes0.bsa", "Skyrim - Meshes1.bsa"],
                    # editor markers, sky domes, critter spawners and fog/mist/spray effects
@@ -446,6 +452,9 @@ def main():
     ap.add_argument("-o", "--out", required=True, help="output directory for the tileset")
     ap.add_argument("--lat", type=float, help="nominal latitude of the world origin (as build_cesium.py)")
     ap.add_argument("--lon", type=float, help="nominal longitude of the world origin")
+    ap.add_argument("--replace-parent", action="store_true",
+                    help="the worldspaces after the first are children in its coordinates (e.g. city sectors): "
+                         "in cells where they have objects, drop the first worldspace's")
     ap.add_argument("--cells", type=int, nargs=4, metavar=("X0", "Y0", "X1", "Y1"),
                     help="only references in this range of cells (inclusive), for quick tests")
     ap.add_argument("--texture-size", type=int, default=512)
@@ -476,11 +485,20 @@ def main():
     meshes = Archives(a.data, g["meshes"])
     textures = Archives(a.data, g["textures"])
 
+    # cells taken over by the other worldspaces (--replace-parent): the first one keeps only a low-detail
+    # stand-in there, e.g. Fallout 3's downtown D.C. seen from outside
+    child_cells = set()
+    if a.replace_parent:
+        child_cells = {(int(pos[0] // ft.CELL_UNITS), int(pos[1] // ft.CELL_UNITS))
+                       for w in a.world[1:] for _, pos, *_ in refs.get(w, [])}
+
     # merge worldspaces, dropping near-identical duplicates of the same model
     placed, seen, bnams = [], set(), {}
     for w in a.world:
         for b, pos, rot, scale, dest in refs.get(w, []):
             if b not in base:
+                continue
+            if w == a.world[0] and (int(pos[0] // ft.CELL_UNITS), int(pos[1] // ft.CELL_UNITS)) in child_cells:
                 continue
             if a.cells:
                 cx, cy = pos[0] // ft.CELL_UNITS, pos[1] // ft.CELL_UNITS
