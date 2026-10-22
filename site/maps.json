@@ -2,6 +2,6 @@
  {"id": "mojave", "title": "Mojave Wasteland", "game": "fnv"},
  {"id": "strip", "title": "The Strip", "game": "fnv"},
  {"id": "freeside", "title": "Freeside", "game": "fnv"},
- {"id": "capital", "title": "Capital Wasteland", "game": "fo3"},
+ {"id": "capital", "title": "Capital Wasteland", "game": "fo3", "data": "https://marcelorigoto1.github.io/capital-wasteland/"},
  {"id": "skyrim", "title": "Skyrim", "game": "skyrim", "data": "https://marcelorigoto1.github.io/tes-skyrim/"}
 ]

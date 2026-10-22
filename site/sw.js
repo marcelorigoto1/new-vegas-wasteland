@@ -16,7 +16,7 @@ self.addEventListener("activate", (event) => {
 });
 
 // map data published from separate repositories (maps.json "data"), served from the same github.io origin
-const DATA_REPOS = ["/tes-skyrim/"];
+const DATA_REPOS = ["/tes-skyrim/", "/capital-wasteland/"];
 
 function cacheable(url) {
   if (url.origin === self.location.origin) {

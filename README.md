@@ -72,6 +72,10 @@ python build_models.py "$FO3" --game fo3 --world Wasteland --world MegatonWorld 
 python build_icons.py "$FO3" --game fo3
 ```
 
+Like Skyrim's, this map's data (about 650 MB) is its own repository,
+[capital-wasteland](https://github.com/marcelorigoto1/capital-wasteland), checked out in `site/maps/capital` and
+published with GitHub Pages from its `main` branch.
+
 Skyrim Special Edition (`$SKYRIM` is its `Data` directory). `--game skyrim` reads Skyrim.esm with Update and the
 three DLCs, the LZ4-compressed BSAs and the localized names in `Skyrim - Interface.bsa`; Skyrim pages use their own
 theme and the vector map icons of `interface\map.swf`.
